@@ -1,0 +1,23 @@
+version = 1
+revision = 1
+requires-python = ">=3.13"
+
+[[package]]
+name = "aiocoap"
+version = "0.4.14"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/28/76/de52f7fa51ddbb5255f7b80d8965903bfa718420ac5d21b0852f5d81c1b1/aiocoap-0.4.14.tar.gz", hash = "sha256:01a34233b6f9a97df9a61f30bc64c0399bac498eaa160189a7f1f48f89d18717", size = 305637 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c6/c4/a9662a407250b15a8161ee1f0b0aecd7fadeecb9c5d9262f47c872f71433/aiocoap-0.4.14-py3-none-any.whl", hash = "sha256:c8e4f0789e2ffbaad1b9a6d3a1cd1370aeea8800b3ff23be533f2af2369747f0", size = 241380 },
+]
+
+[[package]]
+name = "frontend"
+version = "0.1.0"
+source = { virtual = "." }
+dependencies = [
+    { name = "aiocoap" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "aiocoap", specifier = ">=0.4.14" }]

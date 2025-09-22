@@ -1,0 +1,72 @@
+version: "3.8"
+
+services:
+  # MQTT Broker 1
+  mqtt-broker-1:
+    image: eclipse-mosquitto:2.0
+    hostname: mqtt-broker-1
+    container_name: mqtt-broker-1
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./config/mosquitto1.conf:/mosquitto/config/mosquitto.conf
+      - ./data/broker1:/mosquitto/data
+      - ./log/broker1:/mosquitto/log
+    networks:
+      - mqtt-cluster
+
+  # MQTT Broker 2
+  mqtt-broker-2:
+    image: eclipse-mosquitto:2.0
+    hostname: mqtt-broker-2
+    container_name: mqtt-broker-2
+    restart: unless-stopped
+    ports:
+      - "1884:1883"
+      - "9002:9001"
+    volumes:
+      - ./config/mosquitto2.conf:/mosquitto/config/mosquitto.conf
+      - ./data/broker2:/mosquitto/data
+      - ./log/broker2:/mosquitto/log
+    networks:
+      - mqtt-cluster
+
+  # MQTT Broker 3
+  mqtt-broker-3:
+    image: eclipse-mosquitto:2.0
+    hostname: mqtt-broker-3
+    container_name: mqtt-broker-3
+    restart: unless-stopped
+    ports:
+      - "1885:1883"
+      - "9003:9001"
+    volumes:
+      - ./config/mosquitto3.conf:/mosquitto/config/mosquitto.conf
+      - ./data/broker3:/mosquitto/data
+      - ./log/broker3:/mosquitto/log
+    networks:
+      - mqtt-cluster
+
+  # HAProxy Load Balancer
+  haproxy:
+    image: haproxy:2.4
+    hostname: haproxy
+    container_name: mqtt-haproxy
+    restart: unless-stopped
+    ports:
+      - "1880:1883" # Main MQTT port
+      - "8080:8080" # HAProxy stats
+    volumes:
+      - ./config/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg
+    depends_on:
+      - mqtt-broker-1
+      - mqtt-broker-2
+      - mqtt-broker-3
+    networks:
+      - mqtt-cluster
+
+networks:
+  mqtt-cluster:
+    driver: bridge

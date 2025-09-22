@@ -1,51 +1,57 @@
 version: "3.8"
 
 services:
-  # MQTT Broker 1
-  mqtt-broker-1:
-    image: eclipse-mosquitto:2.0
-    hostname: mqtt-broker-1
-    container_name: mqtt-broker-1
+  # EMQX Broker 1
+  emqx1:
+    image: emqx/emqx:5.7.1
+    hostname: emqx1
+    container_name: emqx1
     restart: unless-stopped
+    environment:
+      - EMQX_NAME=emqx1
+      - EMQX_NODE__NAME=emqx1@emqx1
+      - EMQX_CLUSTER__DISCOVERY=static
+      - EMQX_CLUSTER__STATIC__SEEDS=emqx1@emqx1,emqx2@emqx2,emqx3@emqx3
     ports:
-      - "1883:1883"
-      - "9001:9001"
-    volumes:
-      - ./config/mosquitto1.conf:/mosquitto/config/mosquitto.conf
-      - ./data/broker1:/mosquitto/data
-      - ./log/broker1:/mosquitto/log
+      - "1883:1883"     # MQTT TCP
+      - "18083:18083"   # Dashboard HTTP
+      - "8083:8083"     # WebSocket MQTT
     networks:
       - mqtt-cluster
 
-  # MQTT Broker 2
-  mqtt-broker-2:
-    image: eclipse-mosquitto:2.0
-    hostname: mqtt-broker-2
-    container_name: mqtt-broker-2
+  # EMQX Broker 2
+  emqx2:
+    image: emqx/emqx:5.7.1
+    hostname: emqx2
+    container_name: emqx2
     restart: unless-stopped
+    environment:
+      - EMQX_NAME=emqx2
+      - EMQX_NODE__NAME=emqx2@emqx2
+      - EMQX_CLUSTER__DISCOVERY=static
+      - EMQX_CLUSTER__STATIC__SEEDS=emqx1@emqx1,emqx2@emqx2,emqx3@emqx3
     ports:
       - "1884:1883"
-      - "9002:9001"
-    volumes:
-      - ./config/mosquitto2.conf:/mosquitto/config/mosquitto.conf
-      - ./data/broker2:/mosquitto/data
-      - ./log/broker2:/mosquitto/log
+      - "18084:18083"   # Dashboard HTTP
+      - "8084:8083"     # WebSocket MQTT
     networks:
       - mqtt-cluster
 
-  # MQTT Broker 3
-  mqtt-broker-3:
-    image: eclipse-mosquitto:2.0
-    hostname: mqtt-broker-3
-    container_name: mqtt-broker-3
+  # EMQX Broker 3
+  emqx3:
+    image: emqx/emqx:5.7.1
+    hostname: emqx3
+    container_name: emqx3
     restart: unless-stopped
+    environment:
+      - EMQX_NAME=emqx3
+      - EMQX_NODE__NAME=emqx3@emqx3
+      - EMQX_CLUSTER__DISCOVERY=static
+      - EMQX_CLUSTER__STATIC__SEEDS=emqx1@emqx1,emqx2@emqx2,emqx3@emqx3
     ports:
       - "1885:1883"
-      - "9003:9001"
-    volumes:
-      - ./config/mosquitto3.conf:/mosquitto/config/mosquitto.conf
-      - ./data/broker3:/mosquitto/data
-      - ./log/broker3:/mosquitto/log
+      - "18085:18083"   # Dashboard HTTP
+      - "8085:8083"     # WebSocket MQTT
     networks:
       - mqtt-cluster
 
@@ -56,14 +62,14 @@ services:
     container_name: mqtt-haproxy
     restart: unless-stopped
     ports:
-      - "1880:1883" # Main MQTT port
-      - "8080:8080" # HAProxy stats
+      - "1880:1883" # Main MQTT entrypoint for simulator
+      - "8080:8080" # HAProxy stats page
     volumes:
       - ./config/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg
     depends_on:
-      - mqtt-broker-1
-      - mqtt-broker-2
-      - mqtt-broker-3
+      - emqx1
+      - emqx2
+      - emqx3
     networks:
       - mqtt-cluster
 

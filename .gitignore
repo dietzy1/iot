@@ -1,5 +1,6 @@
 log
 .DS_Store
+.train-sim
 bin/
 obj/
 .vscode/

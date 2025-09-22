@@ -6,14 +6,34 @@ import (
 	"time"
 )
 
-type Event struct {
-	Seat      int       `json:"seat"`
-	Available bool      `json:"available"`
+// Base event with common fields that all events share
+type BaseEvent struct {
+	EventType string    `json:"event_type"`
 	Timestamp time.Time `json:"timestamp"`
 	Train     string    `json:"train"`
 	Coach     int       `json:"coach"`
-	BatteryMV int       `json:"battery_mv"`
-	SignalDBM int       `json:"signal_dbm"`
+}
+
+// Seat availability event
+type SeatEvent struct {
+	BaseEvent
+	Seat      int  `json:"seat"`
+	Available bool `json:"available"`
+}
+
+// Noise level event
+type NoiseEvent struct {
+	BaseEvent
+	DecibelLevel float64 `json:"decibel_level"`
+	Location     string  `json:"location"`
+}
+
+// Temperature event
+type TemperatureEvent struct {
+	BaseEvent
+	TemperatureCelsius float64 `json:"temperature_celsius"`
+	Humidity           float64 `json:"humidity"`
+	SensorLocation     string  `json:"sensor_location"`
 }
 
 type Config struct {
@@ -42,6 +62,21 @@ func (g *Generator) Topic(coach int) string {
 	return "train/" + g.cfg.Train + "/coach/" + itoa(coach)
 }
 
+// Topic for seat events
+func (g *Generator) SeatTopic(coach int) string {
+	return "train/" + g.cfg.Train + "/coach/" + itoa(coach) + "/seat"
+}
+
+// Topic for noise events
+func (g *Generator) NoiseTopic(coach int) string {
+	return "train/" + g.cfg.Train + "/coach/" + itoa(coach) + "/noise"
+}
+
+// Topic for temperature events
+func (g *Generator) TemperatureTopic(coach int) string {
+	return "train/" + g.cfg.Train + "/coach/" + itoa(coach) + "/temperature"
+}
+
 func (g *Generator) NextDelay() time.Duration {
 	if g.cfg.Jitter <= 0 {
 		return g.cfg.BaseInterval
@@ -57,22 +92,80 @@ func (g *Generator) NextDelay() time.Duration {
 	return d + j
 }
 
-func (g *Generator) RandomEvent(coach int) (Event, []byte) {
+// Generate a random seat event
+func (g *Generator) RandomSeatEvent(coach int) (SeatEvent, []byte) {
 	seat := 1 + g.rnd.Intn(g.cfg.SeatsPerCoach)
 	available := g.rnd.Intn(100) < 70 // 70% chance available
-	battery := 3500 + g.rnd.Intn(600)
-	signal := -90 + g.rnd.Intn(40)
-	e := Event{
+
+	e := SeatEvent{
+		BaseEvent: BaseEvent{
+			EventType: "seat",
+			Timestamp: time.Now().UTC(),
+			Train:     g.cfg.Train,
+			Coach:     coach,
+		},
 		Seat:      seat,
 		Available: available,
-		Timestamp: time.Now().UTC(),
-		Train:     g.cfg.Train,
-		Coach:     coach,
-		BatteryMV: battery,
-		SignalDBM: signal,
 	}
 	b, _ := json.Marshal(e)
 	return e, b
+}
+
+// Generate a random noise event
+func (g *Generator) RandomNoiseEvent(coach int) (NoiseEvent, []byte) {
+	decibelLevel := 30.0 + g.rnd.Float64()*50.0 // 30-80 dB
+	locations := []string{"front", "middle", "back"}
+	location := locations[g.rnd.Intn(len(locations))]
+
+	e := NoiseEvent{
+		BaseEvent: BaseEvent{
+			EventType: "noise",
+			Timestamp: time.Now().UTC(),
+			Train:     g.cfg.Train,
+			Coach:     coach,
+		},
+		DecibelLevel: decibelLevel,
+		Location:     location,
+	}
+	b, _ := json.Marshal(e)
+	return e, b
+}
+
+// Generate a random temperature event
+func (g *Generator) RandomTemperatureEvent(coach int) (TemperatureEvent, []byte) {
+	temperature := 18.0 + g.rnd.Float64()*15.0 // 18-33°C
+	humidity := 30.0 + g.rnd.Float64()*40.0    // 30-70%
+	locations := []string{"ceiling", "floor", "window", "door"}
+	location := locations[g.rnd.Intn(len(locations))]
+
+	e := TemperatureEvent{
+		BaseEvent: BaseEvent{
+			EventType: "temperature",
+			Timestamp: time.Now().UTC(),
+			Train:     g.cfg.Train,
+			Coach:     coach,
+		},
+		TemperatureCelsius: temperature,
+		Humidity:           humidity,
+		SensorLocation:     location,
+	}
+	b, _ := json.Marshal(e)
+	return e, b
+}
+
+// Generate a random event of any type
+func (g *Generator) RandomEvent(coach int) (interface{}, []byte) {
+	eventType := g.rnd.Intn(3)
+	switch eventType {
+	case 0:
+		return g.RandomSeatEvent(coach)
+	case 1:
+		return g.RandomNoiseEvent(coach)
+	case 2:
+		return g.RandomTemperatureEvent(coach)
+	default:
+		return g.RandomSeatEvent(coach)
+	}
 }
 
 func itoa(v int) string {

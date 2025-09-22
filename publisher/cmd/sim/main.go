@@ -87,8 +87,20 @@ func main() {
 				if ctx.Err() != nil {
 					break
 				}
-				_, payload := g.RandomEvent(coachNum)
-				topic := g.Topic(coachNum)
+				event, payload := g.RandomEvent(coachNum)
+
+				var topic string
+				switch event.(type) {
+				case sim.SeatEvent:
+					topic = g.SeatTopic(coachNum)
+				case sim.NoiseEvent:
+					topic = g.NoiseTopic(coachNum)
+				case sim.TemperatureEvent:
+					topic = g.TemperatureTopic(coachNum)
+				default:
+					topic = g.Topic(coachNum) // fallback to generic topic
+				}
+
 				if err := p.Publish(topic, payload); err != nil {
 					fmt.Fprintf(os.Stderr, "publish error: %v\n", err)
 				}

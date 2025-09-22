@@ -62,6 +62,21 @@ func (g *Generator) Topic(coach int) string {
 	return "train/" + g.cfg.Train + "/coach/" + itoa(coach)
 }
 
+// Topic for seat events
+func (g *Generator) SeatTopic(coach int) string {
+	return "train/" + g.cfg.Train + "/coach/" + itoa(coach) + "/seat"
+}
+
+// Topic for noise events
+func (g *Generator) NoiseTopic(coach int) string {
+	return "train/" + g.cfg.Train + "/coach/" + itoa(coach) + "/noise"
+}
+
+// Topic for temperature events
+func (g *Generator) TemperatureTopic(coach int) string {
+	return "train/" + g.cfg.Train + "/coach/" + itoa(coach) + "/temperature"
+}
+
 func (g *Generator) NextDelay() time.Duration {
 	if g.cfg.Jitter <= 0 {
 		return g.cfg.BaseInterval

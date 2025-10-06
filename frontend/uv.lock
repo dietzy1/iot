@@ -12,7 +12,7 @@ wheels = [
 ]
 
 [[package]]
-name = "screen"
+name = "frontend"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [

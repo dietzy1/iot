@@ -45,15 +45,15 @@ export function NoiseMonitoringChart() {
           config={{
             front: {
               label: "Front",
-              color: "hsl(var(--chart-1))",
+              color: "#ff4444",
             },
             middle: {
               label: "Middle",
-              color: "hsl(var(--chart-2))",
+              color: "#44ff44",
             },
             rear: {
               label: "Rear",
-              color: "hsl(var(--chart-3))",
+              color: "#ffaa00",
             },
           }}
           className="h-[300px]"
@@ -84,9 +84,9 @@ export function NoiseMonitoringChart() {
                 }}
               />
               <ChartTooltip content={<ChartTooltipContent />} />
-              <Line type="monotone" dataKey="front" stroke="hsl(var(--chart-1))" strokeWidth={2} dot={false} />
-              <Line type="monotone" dataKey="middle" stroke="hsl(var(--chart-2))" strokeWidth={2} dot={false} />
-              <Line type="monotone" dataKey="rear" stroke="hsl(var(--chart-3))" strokeWidth={2} dot={false} />
+              <Line type="monotone" dataKey="front" stroke="#ff4444" strokeWidth={2} dot={{ fill: "#ff4444", strokeWidth: 1, r: 4 }} />
+              <Line type="monotone" dataKey="middle" stroke="#44ff44" strokeWidth={2} dot={{ fill: "#44ff44", strokeWidth: 1, r: 4 }} />
+              <Line type="monotone" dataKey="rear" stroke="#ffaa00" strokeWidth={2} dot={{ fill: "#ffaa00", strokeWidth: 1, r: 4 }} />
             </LineChart>
           </ResponsiveContainer>
         </ChartContainer>

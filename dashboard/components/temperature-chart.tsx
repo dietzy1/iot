@@ -45,11 +45,11 @@ export function TemperatureChart() {
           config={{
             temperature: {
               label: "Temperature (°C)",
-              color: "hsl(var(--chart-3))",
+              color: "#ff6b6b",
             },
             humidity: {
               label: "Humidity (%)",
-              color: "hsl(var(--chart-2))",
+              color: "#4ecdc4",
             },
           }}
           className="h-[300px]"
@@ -68,37 +68,37 @@ export function TemperatureChart() {
               />
               <YAxis
                 yAxisId="left"
-                stroke="hsl(var(--chart-3))"
+                stroke="#ff6b6b"
                 fontSize={11}
                 tickLine={false}
                 width={35}
-                label={{ value: "°C", angle: -90, position: "insideLeft", fill: "hsl(var(--chart-3))", fontSize: 11 }}
+                label={{ value: "°C", angle: -90, position: "insideLeft", fill: "#ff6b6b", fontSize: 11 }}
               />
               <YAxis
                 yAxisId="right"
                 orientation="right"
-                stroke="hsl(var(--chart-2))"
+                stroke="#4ecdc4"
                 fontSize={11}
                 tickLine={false}
                 width={35}
-                label={{ value: "%", angle: 90, position: "insideRight", fill: "hsl(var(--chart-2))", fontSize: 11 }}
+                label={{ value: "%", angle: 90, position: "insideRight", fill: "#4ecdc4", fontSize: 11 }}
               />
               <ChartTooltip content={<ChartTooltipContent />} />
               <Line
                 yAxisId="left"
                 type="monotone"
                 dataKey="temperature"
-                stroke="hsl(var(--chart-3))"
+                stroke="#ff6b6b"
                 strokeWidth={2}
-                dot={false}
+                dot={{ fill: "#ff6b6b", strokeWidth: 1, r: 4 }}
               />
               <Line
                 yAxisId="right"
                 type="monotone"
                 dataKey="humidity"
-                stroke="hsl(var(--chart-2))"
+                stroke="#4ecdc4"
                 strokeWidth={2}
-                dot={false}
+                dot={{ fill: "#4ecdc4", strokeWidth: 1, r: 4 }}
               />
             </LineChart>
           </ResponsiveContainer>

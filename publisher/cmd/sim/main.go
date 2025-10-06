@@ -30,7 +30,7 @@ func main() {
 		retain   = flag.Bool("retain", false, "mqtt retain flag")
 		insecure = flag.Bool("insecure", false, "skip tls verification")
 	)
-	flag.Parse()
+	flag.Parse() 
 
 	username := strings.TrimSpace(os.Getenv("MQTT_USERNAME"))
 	password := strings.TrimSpace(os.Getenv("MQTT_PASSWORD"))

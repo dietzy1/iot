@@ -25,6 +25,7 @@ type SeatEvent struct {
 type NoiseEvent struct {
 	BaseEvent
 	DecibelLevel float64 `json:"decibel_level"`
+	Location     string  `json:"location"`
 }
 
 // Temperature event
@@ -32,6 +33,7 @@ type TemperatureEvent struct {
 	BaseEvent
 	TemperatureCelsius float64 `json:"temperature_celsius"`
 	Humidity           float64 `json:"humidity"`
+	SensorLocation     string  `json:"sensor_location"`
 }
 
 type Config struct {

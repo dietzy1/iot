@@ -3,50 +3,97 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { Line, LineChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from "recharts"
-
-function generateNoiseData() {
-  const data = []
-  const now = new Date()
-  const locations = ["front", "middle", "rear"]
-
-  for (let i = 11; i >= 0; i--) {
-    const time = new Date(now.getTime() - i * 10 * 60 * 1000)
-    const entry: any = {
-      time: time.toLocaleTimeString("en-US", { hour: "numeric", hour12: false }),
-    }
-
-    locations.forEach((loc) => {
-      entry[loc] = 50 + Math.random() * 20 + Math.sin(i / 4) * 10
-    })
-
-    data.push(entry)
-  }
-
-  return data
-}
+import { apiClient, type NoiseData } from "@/lib/api"
+import { useEffect, useState } from "react"
 
 export function NoiseMonitoringChart() {
-  const data = generateNoiseData()
+  const [data, setData] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true)
+        // Fetch noise data
+        const noiseData = await apiClient.getNoiseMonitoring(1) as NoiseData[]
+        
+        // Format the data for the chart with actual timestamps
+        const formattedData = noiseData.map(item => {
+          const date = new Date(item.timestamp)
+          
+          return {
+            ...item,
+            time: date.toLocaleTimeString("en-US", { 
+              hour: "2-digit", 
+              minute: "2-digit",
+              hour12: false 
+            }), // Format as "14:23"
+            timestamp: date,
+          }
+        }).sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime()) // Sort chronologically
+        
+        setData(formattedData)
+        setError(null)
+      } catch (err) {
+        console.error('Failed to fetch noise data:', err)
+        setError('Failed to load noise data')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchData, 30000)
+    return () => clearInterval(interval)
+  }, [])
+
+  if (loading) {
+    return (
+      <Card className="bg-card border-border">
+        <CardHeader>
+          <CardTitle className="text-foreground">Noise Monitoring</CardTitle>
+          <CardDescription className="text-muted-foreground">Decibel levels by coach with timestamps</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[300px] bg-muted rounded animate-pulse"></div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (error || !data.length) {
+    return (
+      <Card className="bg-card border-border">
+        <CardHeader>
+          <CardTitle className="text-foreground">Noise Monitoring</CardTitle>
+          <CardDescription className="text-muted-foreground">Decibel levels by coach with timestamps</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[300px] flex items-center justify-center">
+            <p className="text-sm text-destructive">{error || 'No noise data available'}</p>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
 
   return (
     <Card className="bg-card border-border">
       <CardHeader>
         <CardTitle className="text-foreground">Noise Monitoring</CardTitle>
-        <CardDescription className="text-muted-foreground">Decibel levels by coach location</CardDescription>
+        <CardDescription className="text-muted-foreground">Decibel levels by coach with timestamps</CardDescription>
       </CardHeader>
       <CardContent>
         <ChartContainer
           config={{
-            front: {
-              label: "Front",
+            coach1: {
+              label: "Coach 1",
               color: "#22c55e", // green
             },
-            middle: {
-              label: "Middle",
-              color: "#eab308", // yellow
-            },
-            rear: {
-              label: "Rear",
+            coach2: {
+              label: "Coach 2",
               color: "#ef4444", // red
             },
           }}
@@ -58,11 +105,19 @@ export function NoiseMonitoringChart() {
               <XAxis
                 dataKey="time"
                 stroke="hsl(var(--muted-foreground))"
-                fontSize={11}
+                fontSize={10}
                 tickLine={false}
                 angle={-45}
                 textAnchor="end"
                 height={60}
+                interval={0}
+                label={{
+                  value: "Time (HH:MM)",
+                  position: "insideBottom",
+                  offset: -5,
+                  fill: "hsl(var(--muted-foreground))",
+                  fontSize: 11,
+                }}
               />
               <YAxis
                 stroke="hsl(var(--muted-foreground))"
@@ -77,10 +132,39 @@ export function NoiseMonitoringChart() {
                   fontSize: 11,
                 }}
               />
-              <ChartTooltip content={<ChartTooltipContent />} />
-              <Line type="monotone" dataKey="front" stroke="#22c55e" strokeWidth={2} dot={{ fill: "#22c55e", r: 4 }} activeDot={{ r: 6 }} />
-              <Line type="monotone" dataKey="middle" stroke="#eab308" strokeWidth={2} dot={{ fill: "#eab308", r: 4 }} activeDot={{ r: 6 }} />
-              <Line type="monotone" dataKey="rear" stroke="#ef4444" strokeWidth={2} dot={{ fill: "#ef4444", r: 4 }} activeDot={{ r: 6 }} />
+              <ChartTooltip 
+                content={({ active, payload, label }) => {
+                  if (active && payload && payload.length) {
+                    return (
+                      <div className="bg-background border border-border rounded-lg p-3 shadow-lg">
+                        <p className="font-medium">Time: {label}</p>
+                        {payload.map((entry, index) => (
+                          <p key={index} className="text-sm" style={{ color: entry.color }}>
+                            {entry.name}: {Number(entry.value).toFixed(1)}dB
+                          </p>
+                        ))}
+                      </div>
+                    )
+                  }
+                  return null
+                }}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="coach1" 
+                stroke="#22c55e" 
+                strokeWidth={2} 
+                dot={{ fill: "#22c55e", r: 3 }} 
+                activeDot={{ r: 5 }} 
+              />
+              <Line 
+                type="monotone" 
+                dataKey="coach2" 
+                stroke="#ef4444" 
+                strokeWidth={2} 
+                dot={{ fill: "#ef4444", r: 3 }} 
+                activeDot={{ r: 5 }} 
+              />
             </LineChart>
           </ResponsiveContainer>
         </ChartContainer>

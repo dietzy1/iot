@@ -1,49 +1,100 @@
+"use client"
+
 import { Card } from "@/components/ui/card"
 import { ArmchairIcon, Volume2Icon, ThermometerIcon, TrendingUpIcon } from "@/components/icons"
+import { apiClient, type StatsOverview as StatsData } from "@/lib/api"
+import { useEffect, useState } from "react"
 
 export function StatsOverview() {
-  const stats = [
+  const [stats, setStats] = useState<StatsData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        setLoading(true)
+        const data = await apiClient.getStatsOverview() as StatsData
+        setStats(data)
+        setError(null)
+      } catch (err) {
+        console.error('Failed to fetch stats:', err)
+        setError('Failed to load statistics')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchStats()
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchStats, 30000)
+    return () => clearInterval(interval)
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {[...Array(4)].map((_, i) => (
+          <Card key={i} className="p-4 bg-card border-border animate-pulse">
+            <div className="h-20 bg-muted rounded"></div>
+          </Card>
+        ))}
+      </div>
+    )
+  }
+
+  if (error || !stats) {
+    return (
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card className="p-4 bg-card border-border">
+          <p className="text-sm text-destructive">{error || 'No data available'}</p>
+        </Card>
+      </div>
+    )
+  }
+
+  const statCards = [
     {
       label: "Available Seats",
-      value: "142",
-      total: "/ 240",
+      value: (stats.totalSeats - stats.totalPassengers).toString(),
+      total: `/ ${stats.totalSeats}`,
       icon: ArmchairIcon,
-      trend: "+12",
+      trend: stats.occupancyTrend > 0 ? `+${stats.occupancyTrend.toFixed(1)}%` : `${stats.occupancyTrend.toFixed(1)}%`,
       trendLabel: "vs last hour",
       color: "text-chart-1",
     },
     {
       label: "Avg Noise Level",
-      value: "58.3",
+      value: stats.avgNoiseLevel.toString(),
       unit: "dB",
       icon: Volume2Icon,
-      trend: "-2.1",
-      trendLabel: "vs last hour",
+      trend: stats.avgNoiseLevel > 60 ? "High" : stats.avgNoiseLevel > 50 ? "Normal" : "Low",
+      trendLabel: "current level",
       color: "text-chart-2",
     },
     {
       label: "Avg Temperature",
-      value: "23.4",
+      value: stats.avgTemperature.toString(),
       unit: "°C",
       icon: ThermometerIcon,
-      trend: "+0.8",
-      trendLabel: "vs last hour",
+      trend: stats.avgTemperature > 25 ? "Warm" : stats.avgTemperature > 20 ? "Comfortable" : "Cool",
+      trendLabel: "current status",
       color: "text-chart-3",
     },
     {
-      label: "Active Trains",
-      value: "8",
-      total: "/ 12",
+      label: "Active Carriages",
+      value: stats.activeCarriages.toString(),
+      total: "",
       icon: TrendingUpIcon,
-      trend: "100%",
-      trendLabel: "operational",
+      trend: `${stats.occupancyRate.toFixed(1)}%`,
+      trendLabel: "occupancy rate",
       color: "text-chart-1",
     },
   ]
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      {stats.map((stat) => (
+      {statCards.map((stat) => (
         <Card key={stat.label} className="p-4 bg-card border-border">
           <div className="flex items-start justify-between">
             <div className="flex-1">

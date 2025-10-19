@@ -17,6 +17,8 @@ namespace backend.Data
         // Define your DbSets for each entity you want to store
         public DbSet<CarriageSeats> CarriageSeats { get; set; }
         public DbSet<CarriageNoiseAndTemp> CarriageNoiseAndTemps { get; set; }
+        public DbSet<CarriageTemperature> CarriageTemperatures { get; set; }
+        public DbSet<CarriageNoise> CarriageNoises { get; set; }
 
         // You can override OnModelCreating to configure your models further
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -26,6 +28,12 @@ namespace backend.Data
 
             modelBuilder.Entity<CarriageNoiseAndTemp>()
                 .HasKey(cnt => new { cnt.CarriageId, cnt.Date });
+
+            modelBuilder.Entity<CarriageTemperature>()
+                .HasKey(ct => new { ct.CarriageId, ct.Date });
+
+            modelBuilder.Entity<CarriageNoise>()
+                .HasKey(cn => new { cn.CarriageId, cn.Date });
         }
     }
 }

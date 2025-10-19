@@ -3,42 +3,98 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { Line, LineChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from "recharts"
-
-function generateTempData() {
-  const data = []
-  const now = new Date()
-
-  for (let i = 11; i >= 0; i--) {
-    const time = new Date(now.getTime() - i * 10 * 60 * 1000)
-    data.push({
-      time: time.toLocaleTimeString("en-US", { hour: "numeric", hour12: false }),
-      temperature: 22 + Math.random() * 4 + Math.sin(i / 5) * 2,
-      humidity: 45 + Math.random() * 15 + Math.cos(i / 4) * 5,
-    })
-  }
-
-  return data
-}
+import { apiClient, type TemperatureData } from "@/lib/api"
+import { useEffect, useState } from "react"
 
 export function TemperatureChart() {
-  const data = generateTempData()
+  const [data, setData] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true)
+        // Fetch temperature data
+        const tempData = await apiClient.getTemperatureHistory(1) as TemperatureData[]
+        
+        // Format the data for the chart with actual timestamps
+        const formattedData = tempData.map(item => {
+          const date = new Date(item.timestamp)
+          
+          return {
+            ...item,
+            time: date.toLocaleTimeString("en-US", { 
+              hour: "2-digit", 
+              minute: "2-digit",
+              hour12: false 
+            }), // Format as "14:23"
+            timestamp: date,
+          }
+        }).sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime()) // Sort chronologically
+        
+        setData(formattedData)
+        setError(null)
+      } catch (err) {
+        console.error('Failed to fetch temperature data:', err)
+        setError('Failed to load temperature data')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchData, 30000)
+    return () => clearInterval(interval)
+  }, [])
+
+  if (loading) {
+    return (
+      <Card className="bg-card border-border">
+        <CardHeader>
+          <CardTitle className="text-foreground">Environmental Conditions</CardTitle>
+          <CardDescription className="text-muted-foreground">Temperature monitoring with timestamps</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[300px] bg-muted rounded animate-pulse"></div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (error || !data.length) {
+    return (
+      <Card className="bg-card border-border">
+        <CardHeader>
+          <CardTitle className="text-foreground">Environmental Conditions</CardTitle>
+          <CardDescription className="text-muted-foreground">Temperature monitoring with timestamps</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[300px] flex items-center justify-center">
+            <p className="text-sm text-destructive">{error || 'No temperature data available'}</p>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
 
   return (
     <Card className="bg-card border-border">
       <CardHeader>
         <CardTitle className="text-foreground">Environmental Conditions</CardTitle>
-        <CardDescription className="text-muted-foreground">Temperature and humidity monitoring</CardDescription>
+        <CardDescription className="text-muted-foreground">Temperature monitoring with timestamps</CardDescription>
       </CardHeader>
       <CardContent>
         <ChartContainer
           config={{
-            temperature: {
-              label: "Temperature (°C)",
+            coach1: {
+              label: "Coach 1 Temp (°C)",
               color: "#f97316", // orange
             },
-            humidity: {
-              label: "Humidity (%)",
-              color: "#3b82f6", // blue
+            coach2: {
+              label: "Coach 2 Temp (°C)", 
+              color: "#ef4444", // red
             },
           }}
           className="h-[300px]"
@@ -49,47 +105,59 @@ export function TemperatureChart() {
               <XAxis
                 dataKey="time"
                 stroke="hsl(var(--muted-foreground))"
-                fontSize={11}
+                fontSize={10}
                 tickLine={false}
                 angle={-45}
                 textAnchor="end"
                 height={60}
+                interval={0}
+                label={{
+                  value: "Time (HH:MM)",
+                  position: "insideBottom",
+                  offset: -5,
+                  fill: "hsl(var(--muted-foreground))",
+                  fontSize: 11,
+                }}
               />
               <YAxis
-                yAxisId="left"
-                stroke="#f97316"
+                stroke="hsl(var(--muted-foreground))"
                 fontSize={11}
                 tickLine={false}
                 width={35}
-                label={{ value: "°C", angle: -90, position: "insideLeft", fill: "#f97316", fontSize: 11 }}
+                label={{ value: "°C", angle: -90, position: "insideLeft", fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
               />
-              <YAxis
-                yAxisId="right"
-                orientation="right"
-                stroke="#3b82f6"
-                fontSize={11}
-                tickLine={false}
-                width={35}
-                label={{ value: "%", angle: 90, position: "insideRight", fill: "#3b82f6", fontSize: 11 }}
+              <ChartTooltip 
+                content={({ active, payload, label }) => {
+                  if (active && payload && payload.length) {
+                    return (
+                      <div className="bg-background border border-border rounded-lg p-3 shadow-lg">
+                        <p className="font-medium">Time: {label}</p>
+                        {payload.map((entry, index) => (
+                          <p key={index} className="text-sm" style={{ color: entry.color }}>
+                            {entry.name}: {Number(entry.value).toFixed(1)}°C
+                          </p>
+                        ))}
+                      </div>
+                    )
+                  }
+                  return null
+                }}
               />
-              <ChartTooltip content={<ChartTooltipContent />} />
               <Line
-                yAxisId="left"
                 type="monotone"
-                dataKey="temperature"
+                dataKey="coach1"
                 stroke="#f97316"
                 strokeWidth={2}
-                dot={{ fill: "#f97316", r: 4 }}
-                activeDot={{ r: 6 }}
+                dot={{ fill: "#f97316", r: 3 }}
+                activeDot={{ r: 5 }}
               />
               <Line
-                yAxisId="right"
                 type="monotone"
-                dataKey="humidity"
-                stroke="#3b82f6"
+                dataKey="coach2"
+                stroke="#ef4444"
                 strokeWidth={2}
-                dot={{ fill: "#3b82f6", r: 4 }}
-                activeDot={{ r: 6 }}
+                dot={{ fill: "#ef4444", r: 3 }}
+                activeDot={{ r: 5 }}
               />
             </LineChart>
           </ResponsiveContainer>

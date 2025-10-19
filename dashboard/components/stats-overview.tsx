@@ -26,8 +26,8 @@ export function StatsOverview() {
     }
 
     fetchStats()
-    // Refresh every 30 seconds
-    const interval = setInterval(fetchStats, 30000)
+    // Refresh every 10 seconds
+    const interval = setInterval(fetchStats, 10000)
     return () => clearInterval(interval)
   }, [])
 

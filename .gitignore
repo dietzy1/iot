@@ -4,3 +4,7 @@ log
 bin/
 obj/
 .vscode/
+
+# Personal startup scripts
+start-iot-system.ps1
+stop-iot-system.ps1

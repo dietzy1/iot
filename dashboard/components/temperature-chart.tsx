@@ -10,6 +10,24 @@ export function TemperatureChart() {
   const [data, setData] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [coachConfig, setCoachConfig] = useState<Record<string, { label: string; color: string }>>({})
+
+  // Generate colors for coaches
+  const generateCoachColor = (index: number) => {
+    const colors = [
+      "#f97316", // orange
+      "#ef4444", // red  
+      "#22c55e", // green
+      "#3b82f6", // blue
+      "#8b5cf6", // purple
+      "#f59e0b", // amber
+      "#06b6d4", // cyan
+      "#ec4899", // pink
+      "#84cc16", // lime
+      "#f43f5e", // rose
+    ]
+    return colors[index % colors.length]
+  }
 
   useEffect(() => {
     const fetchData = async () => {
@@ -32,6 +50,36 @@ export function TemperatureChart() {
             timestamp: date,
           }
         }).sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime()) // Sort chronologically
+        
+        // Dynamically detect coaches from the data
+        if (formattedData.length > 0) {
+          // Scan ALL data points to find all possible coaches (not just the first one)
+          const allCoachKeys = new Set<string>()
+          formattedData.forEach(dataPoint => {
+            Object.keys(dataPoint).forEach(key => {
+              if (key.startsWith('coach')) {
+                allCoachKeys.add(key)
+              }
+            })
+          })
+          
+          const coachKeysArray = Array.from(allCoachKeys).sort((a, b) => {
+            const aNum = parseInt(a.replace('coach', ''))
+            const bNum = parseInt(b.replace('coach', ''))
+            return aNum - bNum
+          })
+          
+          const dynamicConfig: Record<string, { label: string; color: string }> = {}
+          coachKeysArray.forEach((coachKey, index) => {
+            const coachNumber = coachKey.replace('coach', '')
+            dynamicConfig[coachKey] = {
+              label: `Coach ${coachNumber} Temp (°C)`,
+              color: generateCoachColor(index)
+            }
+          })
+          
+          setCoachConfig(dynamicConfig)
+        }
         
         setData(formattedData)
         setError(null)
@@ -87,16 +135,7 @@ export function TemperatureChart() {
       </CardHeader>
       <CardContent>
         <ChartContainer
-          config={{
-            coach1: {
-              label: "Coach 1 Temp (°C)",
-              color: "#f97316", // orange
-            },
-            coach2: {
-              label: "Coach 2 Temp (°C)", 
-              color: "#ef4444", // red
-            },
-          }}
+          config={coachConfig}
           className="h-[300px]"
         >
           <ResponsiveContainer width="100%" height="100%">
@@ -124,6 +163,7 @@ export function TemperatureChart() {
                 fontSize={11}
                 tickLine={false}
                 width={35}
+                domain={[22, 27]}
                 label={{ value: "°C", angle: -90, position: "insideLeft", fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
               />
               <ChartTooltip 
@@ -143,22 +183,18 @@ export function TemperatureChart() {
                   return null
                 }}
               />
-              <Line
-                type="monotone"
-                dataKey="coach1"
-                stroke="#f97316"
-                strokeWidth={2}
-                dot={{ fill: "#f97316", r: 3 }}
-                activeDot={{ r: 5 }}
-              />
-              <Line
-                type="monotone"
-                dataKey="coach2"
-                stroke="#ef4444"
-                strokeWidth={2}
-                dot={{ fill: "#ef4444", r: 3 }}
-                activeDot={{ r: 5 }}
-              />
+              {/* Dynamically render lines for all coaches */}
+              {Object.entries(coachConfig).map(([coachKey, config]) => (
+                <Line
+                  key={coachKey}
+                  type="monotone"
+                  dataKey={coachKey}
+                  stroke={config.color}
+                  strokeWidth={2}
+                  dot={{ fill: config.color, r: 3 }}
+                  activeDot={{ r: 5 }}
+                />
+              ))}
             </LineChart>
           </ResponsiveContainer>
         </ChartContainer>

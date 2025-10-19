@@ -10,6 +10,24 @@ export function NoiseMonitoringChart() {
   const [data, setData] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [coachConfig, setCoachConfig] = useState<Record<string, { label: string; color: string }>>({})
+
+  // Generate colors for coaches
+  const generateCoachColor = (index: number) => {
+    const colors = [
+      "#22c55e", // green
+      "#ef4444", // red
+      "#f97316", // orange  
+      "#3b82f6", // blue
+      "#8b5cf6", // purple
+      "#f59e0b", // amber
+      "#06b6d4", // cyan
+      "#ec4899", // pink
+      "#84cc16", // lime
+      "#f43f5e", // rose
+    ]
+    return colors[index % colors.length]
+  }
 
   useEffect(() => {
     const fetchData = async () => {
@@ -32,6 +50,36 @@ export function NoiseMonitoringChart() {
             timestamp: date,
           }
         }).sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime()) // Sort chronologically
+        
+        // Dynamically detect coaches from the data
+        if (formattedData.length > 0) {
+          // Scan ALL data points to find all possible coaches (not just the first one)
+          const allCoachKeys = new Set<string>()
+          formattedData.forEach(dataPoint => {
+            Object.keys(dataPoint).forEach(key => {
+              if (key.startsWith('coach')) {
+                allCoachKeys.add(key)
+              }
+            })
+          })
+          
+          const coachKeysArray = Array.from(allCoachKeys).sort((a, b) => {
+            const aNum = parseInt(a.replace('coach', ''))
+            const bNum = parseInt(b.replace('coach', ''))
+            return aNum - bNum
+          })
+          
+          const dynamicConfig: Record<string, { label: string; color: string }> = {}
+          coachKeysArray.forEach((coachKey, index) => {
+            const coachNumber = coachKey.replace('coach', '')
+            dynamicConfig[coachKey] = {
+              label: `Coach ${coachNumber}`,
+              color: generateCoachColor(index)
+            }
+          })
+          
+          setCoachConfig(dynamicConfig)
+        }
         
         setData(formattedData)
         setError(null)
@@ -87,16 +135,7 @@ export function NoiseMonitoringChart() {
       </CardHeader>
       <CardContent>
         <ChartContainer
-          config={{
-            coach1: {
-              label: "Coach 1",
-              color: "#22c55e", // green
-            },
-            coach2: {
-              label: "Coach 2",
-              color: "#ef4444", // red
-            },
-          }}
+          config={coachConfig}
           className="h-[300px]"
         >
           <ResponsiveContainer width="100%" height="100%">
@@ -124,6 +163,7 @@ export function NoiseMonitoringChart() {
                 fontSize={11}
                 tickLine={false}
                 width={40}
+                domain={[45, 60]}
                 label={{
                   value: "dB",
                   angle: -90,
@@ -149,22 +189,18 @@ export function NoiseMonitoringChart() {
                   return null
                 }}
               />
-              <Line 
-                type="monotone" 
-                dataKey="coach1" 
-                stroke="#22c55e" 
-                strokeWidth={2} 
-                dot={{ fill: "#22c55e", r: 3 }} 
-                activeDot={{ r: 5 }} 
-              />
-              <Line 
-                type="monotone" 
-                dataKey="coach2" 
-                stroke="#ef4444" 
-                strokeWidth={2} 
-                dot={{ fill: "#ef4444", r: 3 }} 
-                activeDot={{ r: 5 }} 
-              />
+              {/* Dynamically render lines for all coaches */}
+              {Object.entries(coachConfig).map(([coachKey, config]) => (
+                <Line
+                  key={coachKey}
+                  type="monotone"
+                  dataKey={coachKey}
+                  stroke={config.color}
+                  strokeWidth={2}
+                  dot={{ fill: config.color, r: 3 }}
+                  activeDot={{ r: 5 }}
+                />
+              ))}
             </LineChart>
           </ResponsiveContainer>
         </ChartContainer>

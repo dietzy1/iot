@@ -14,7 +14,9 @@ namespace backend.Services
         private readonly ILogger<MqttSubscriberService> _logger;
         private IMqttClient? _mqttClient;
 
-        public MqttSubscriberService(IServiceProvider serviceProvider, ILogger<MqttSubscriberService> logger)
+        public MqttSubscriberService(
+            IServiceProvider serviceProvider, 
+            ILogger<MqttSubscriberService> logger)
         {
             _serviceProvider = serviceProvider;
             _logger = logger;
@@ -62,6 +64,9 @@ namespace backend.Services
                 
                 using var scope = _serviceProvider.CreateScope();
                 var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                var temperatureService = scope.ServiceProvider.GetRequiredService<TemperatureService>();
+                var noiseService = scope.ServiceProvider.GetRequiredService<NoiseService>();
+                var seatService = scope.ServiceProvider.GetRequiredService<SeatService>();
 
                 // Parse topic: train/IC-123/coach/1/temperature
                 var topicParts = topic.Split('/');
@@ -75,15 +80,15 @@ namespace backend.Services
                     {
                         if (sensorType == "temperature")
                         {
-                            await HandleTemperatureData(context, payload, coachId);
+                            await HandleTemperatureData(context, payload, coachId, temperatureService);
                         }
                         else if (sensorType == "noise")
                         {
-                            await HandleNoiseData(context, payload, coachId);
+                            await HandleNoiseData(context, payload, coachId, noiseService);
                         }
                         else if (sensorType == "seat")
                         {
-                            await HandleSeatData(context, payload, coachId, topic);
+                            await HandleSeatData(context, payload, coachId, topic, seatService);
                         }
                     }
                 }
@@ -94,7 +99,7 @@ namespace backend.Services
             }
         }
 
-        private async Task HandleTemperatureData(ApplicationDbContext context, string payload, int coachId)
+        private async Task HandleTemperatureData(ApplicationDbContext context, string payload, int coachId, TemperatureService temperatureService)
         {
             try
             {
@@ -118,29 +123,17 @@ namespace backend.Services
                         sensorLocation = locationElement.GetString() ?? "unknown";
                     }
                     
-                    // Save only temperature data to separate table
-                    var newRecord = new CarriageTemperature
-                    {
-                        CarriageId = coachId,
-                        Date = DateTime.UtcNow,
-                        Temperature = temperature,
-                        Humidity = humidity,
-                        SensorLocation = sensorLocation
-                    };
-                    context.CarriageTemperatures.Add(newRecord);
-
-                    await context.SaveChangesAsync();
-                    _logger.LogInformation("🌡️ Temperature data saved: Coach {coachId}, Temp: {temp}°C, Humidity: {humidity}%, Location: {location}", 
-                        coachId, temperature, humidity, sensorLocation);
+                    // Delegate to TemperatureService
+                    await temperatureService.SaveTemperatureData(coachId, temperature, humidity, sensorLocation);
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ Error handling temperature data: {error}", ex.Message);
+                _logger.LogError(ex, "Error handling temperature data: {error}", ex.Message);
             }
         }
 
-        private async Task HandleNoiseData(ApplicationDbContext context, string payload, int coachId)
+        private async Task HandleNoiseData(ApplicationDbContext context, string payload, int coachId, NoiseService noiseService)
         {
             try
             {
@@ -149,30 +142,20 @@ namespace backend.Services
                 if (data.TryGetProperty("decibel_level", out var noiseElement))
                 {
                     var noiseLevel = noiseElement.GetSingle();
+                    var location = data.TryGetProperty("location", out var locationElement) ? 
+                                  locationElement.GetString() ?? "unknown" : "unknown";
                     
-                    // Save only noise data to separate table
-                    var newRecord = new CarriageNoise
-                    {
-                        CarriageId = coachId,
-                        Date = DateTime.UtcNow,
-                        NoiseLevel = noiseLevel,
-                        Location = data.TryGetProperty("location", out var locationElement) ? 
-                                  locationElement.GetString() ?? "unknown" : "unknown"
-                    };
-                    context.CarriageNoises.Add(newRecord);
-
-                    await context.SaveChangesAsync();
-                    _logger.LogInformation("🔊 Noise data saved: Coach {coachId}, Noise: {noise}dB, Location: {location}", 
-                        coachId, noiseLevel, newRecord.Location);
+                    // Delegate to NoiseService
+                    await noiseService.SaveNoiseData(coachId, noiseLevel, location);
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ Error handling noise data: {error}", ex.Message);
+                _logger.LogError(ex, "Error handling noise data: {error}", ex.Message);
             }
         }
 
-        private async Task HandleSeatData(ApplicationDbContext context, string payload, int coachId, string topic)
+        private async Task HandleSeatData(ApplicationDbContext context, string payload, int coachId, string topic, SeatService seatService)
         {
             try
             {
@@ -191,64 +174,12 @@ namespace backend.Services
                     seatNumber = seatElement.GetInt32();
                 }
 
-                // This is for individual seat updates - we need to aggregate them properly
-                // Get the current seat record for this coach
-                var today = DateTime.UtcNow.Date;
-                var currentHour = DateTime.UtcNow.Hour;
-                
-                var seatRecord = await context.CarriageSeats
-                    .Where(cs => cs.CarriageId == coachId && 
-                                cs.Date.Date == today && 
-                                cs.Date.Hour == currentHour)
-                    .FirstOrDefaultAsync();
-
-                if (seatRecord == null)
-                {
-                    // Create new seat record for this hour
-                    seatRecord = new CarriageSeats
-                    {
-                        CarriageId = coachId,
-                        Date = new DateTime(today.Year, today.Month, today.Day, currentHour, 0, 0),
-                        TotalSeats = 24,
-                        OcupiedSeats = isOccupied ? 1 : 0,
-                        OcupiedSeatsBitMap = isOccupied ? (1 << (seatNumber - 1)) : 0
-                    };
-                    context.CarriageSeats.Add(seatRecord);
-                }
-                else
-                {
-                    // Update existing record based on individual seat state
-                    var seatBit = 1 << (seatNumber - 1);
-                    
-                    if (isOccupied)
-                    {
-                        // Set the bit for this seat
-                        if ((seatRecord.OcupiedSeatsBitMap & seatBit) == 0)
-                        {
-                            seatRecord.OcupiedSeatsBitMap |= seatBit;
-                            seatRecord.OcupiedSeats++;
-                        }
-                    }
-                    else
-                    {
-                        // Clear the bit for this seat
-                        if ((seatRecord.OcupiedSeatsBitMap & seatBit) != 0)
-                        {
-                            seatRecord.OcupiedSeatsBitMap &= ~seatBit;
-                            seatRecord.OcupiedSeats--;
-                        }
-                    }
-                    
-                    // Don't update the Date field since it's part of the primary key
-                }
-
-                await context.SaveChangesAsync();
-                _logger.LogInformation("💺 Seat data updated from Go script: Coach {coachId}, Seat {seatNumber}, Occupied: {isOccupied}, Total Occupied: {occupied}/{total}", 
-                    coachId, seatNumber, isOccupied, seatRecord.OcupiedSeats, seatRecord.TotalSeats);
+                // Delegate to SeatService
+                await seatService.UpdateSeatData(coachId, seatNumber, isOccupied);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ Error handling seat data: {error}", ex.Message);
+                _logger.LogError(ex, "Error handling seat data: {error}", ex.Message);
             }
         }
 

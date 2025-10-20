@@ -5,7 +5,12 @@ import { ArmchairIcon, Volume2Icon, ThermometerIcon, TrendingUpIcon } from "@/co
 import { apiClient, type StatsOverview as StatsData } from "@/lib/api"
 import { useEffect, useState } from "react"
 
-export function StatsOverview() {
+interface StatsOverviewProps {
+  coachId: number | null
+  timeSpan: string
+}
+
+export function StatsOverview({ coachId, timeSpan }: StatsOverviewProps) {
   const [stats, setStats] = useState<StatsData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -14,7 +19,7 @@ export function StatsOverview() {
     const fetchStats = async () => {
       try {
         setLoading(true)
-        const data = await apiClient.getStatsOverview() as StatsData
+        const data = await apiClient.getStatsOverview(coachId, timeSpan) as StatsData
         setStats(data)
         setError(null)
       } catch (err) {
@@ -29,7 +34,7 @@ export function StatsOverview() {
     // Refresh every 10 seconds
     const interval = setInterval(fetchStats, 10000)
     return () => clearInterval(interval)
-  }, [])
+  }, [coachId, timeSpan])
 
   if (loading) {
     return (

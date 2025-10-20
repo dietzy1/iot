@@ -6,7 +6,12 @@ import { Line, LineChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } fro
 import { apiClient, type NoiseData } from "@/lib/api"
 import { useEffect, useState } from "react"
 
-export function NoiseMonitoringChart() {
+interface NoiseMonitoringChartProps {
+  coachId: number | null
+  timeSpan: string
+}
+
+export function NoiseMonitoringChart({ coachId, timeSpan }: NoiseMonitoringChartProps) {
   const [data, setData] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -33,8 +38,8 @@ export function NoiseMonitoringChart() {
     const fetchData = async () => {
       try {
         setLoading(true)
-        // Fetch noise data
-        const noiseData = await apiClient.getNoiseMonitoring(1) as NoiseData[]
+        // Fetch noise data with filtering
+        const noiseData = await apiClient.getNoiseMonitoring(coachId, timeSpan) as NoiseData[]
         
         // Format the data for the chart with actual timestamps
         const formattedData = noiseData.map(item => {
@@ -95,7 +100,7 @@ export function NoiseMonitoringChart() {
     // Refresh every 30 seconds
     const interval = setInterval(fetchData, 30000)
     return () => clearInterval(interval)
-  }, [])
+  }, [coachId, timeSpan])
 
   if (loading) {
     return (

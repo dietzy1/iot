@@ -25,6 +25,11 @@ builder.Services.AddCors(options =>
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 	options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+// Register domain services
+builder.Services.AddScoped<TemperatureService>();
+builder.Services.AddScoped<NoiseService>();
+builder.Services.AddScoped<SeatService>();
+
 // Register background services
 builder.Services.AddSingleton<IHostedService, CoapServerService>();
 builder.Services.AddHostedService<MqttSubscriberService>();

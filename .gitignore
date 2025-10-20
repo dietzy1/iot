@@ -5,6 +5,9 @@ bin/
 obj/
 .vscode/
 
+*.db-shm
+*.db-wal
+
 # Personal startup scripts
 start-iot-system.ps1
 stop-iot-system.ps1

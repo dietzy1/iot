@@ -6,7 +6,12 @@ import { Line, LineChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } fro
 import { apiClient, type TemperatureData } from "@/lib/api"
 import { useEffect, useState } from "react"
 
-export function TemperatureChart() {
+interface TemperatureChartProps {
+  coachId: number | null
+  timeSpan: string
+}
+
+export function TemperatureChart({ coachId, timeSpan }: TemperatureChartProps) {
   const [data, setData] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -33,8 +38,8 @@ export function TemperatureChart() {
     const fetchData = async () => {
       try {
         setLoading(true)
-        // Fetch temperature data
-        const tempData = await apiClient.getTemperatureHistory(1) as TemperatureData[]
+        // Fetch temperature data with filtering
+        const tempData = await apiClient.getTemperatureHistory(coachId, timeSpan) as TemperatureData[]
         
         // Format the data for the chart with actual timestamps
         const formattedData = tempData.map(item => {
@@ -95,7 +100,7 @@ export function TemperatureChart() {
     // Refresh every 30 seconds
     const interval = setInterval(fetchData, 30000)
     return () => clearInterval(interval)
-  }, [])
+  }, [coachId, timeSpan])
 
   if (loading) {
     return (

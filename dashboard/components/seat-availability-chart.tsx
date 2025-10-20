@@ -6,7 +6,11 @@ import { Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from 
 import { apiClient, type SeatAvailability } from "@/lib/api"
 import { useEffect, useState } from "react"
 
-export function SeatAvailabilityChart() {
+interface SeatAvailabilityChartProps {
+  coachId: number | null
+}
+
+export function SeatAvailabilityChart({ coachId }: SeatAvailabilityChartProps) {
   const [data, setData] = useState<SeatAvailability[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -15,7 +19,7 @@ export function SeatAvailabilityChart() {
     const fetchData = async () => {
       try {
         setLoading(true)
-        const seatData = await apiClient.getSeatAvailability() as SeatAvailability[]
+        const seatData = await apiClient.getSeatAvailability(coachId) as SeatAvailability[]
         setData(seatData)
         setError(null)
       } catch (err) {
@@ -30,7 +34,7 @@ export function SeatAvailabilityChart() {
     // Refresh every 30 seconds
     const interval = setInterval(fetchData, 30000)
     return () => clearInterval(interval)
-  }, [])
+  }, [coachId])
 
   if (loading) {
     return (

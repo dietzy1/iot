@@ -65,5 +65,45 @@ namespace backend.Services
             _logger.LogInformation("Seat data updated: Coach {coachId}, Seat {seatNumber}, Occupied: {isOccupied}, Total Occupied: {occupied}/{total}",
                 coachId, seatNumber, isOccupied, seatRecord.OcupiedSeats, seatRecord.TotalSeats);
         }
+
+        public async Task<int> GetAvailableSeats(int coachId, DateTime? dateTime)
+        {
+            if (dateTime == null)
+            {
+                dateTime = DateTime.UtcNow;
+            }
+
+            var seatRecord = await _context.CarriageSeats
+                .Where(cs => cs.CarriageId == coachId && cs.Date <= dateTime)
+                .OrderByDescending(cs => cs.Date)
+                .FirstOrDefaultAsync();
+
+            if (seatRecord == null)
+            {
+                return 24; // No records found, assume all seats are available
+            }
+
+            return seatRecord.TotalSeats - seatRecord.OcupiedSeats;
+        }
+
+        public async Task<int> GetSeatsBitMap(int coachId, DateTime? dateTime)
+        {
+            if (dateTime == null)
+            {
+                dateTime = DateTime.UtcNow;
+            }
+
+            var seatRecord = await _context.CarriageSeats
+                .Where(cs => cs.CarriageId == coachId && cs.Date <= dateTime)
+                .OrderByDescending(cs => cs.Date)
+                .FirstOrDefaultAsync();
+
+            if (seatRecord == null)
+            {
+                return 0; // No records found, assume no seats are occupied
+            }
+
+            return seatRecord.OcupiedSeatsBitMap;
+        }
     }
 }

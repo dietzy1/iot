@@ -18,22 +18,18 @@ namespace backend.Services
 
         public async Task UpdateSeatData(int coachId, int seatNumber, bool isOccupied)
         {
-            var today = DateTime.UtcNow.Date;
-            var currentHour = DateTime.UtcNow.Hour;
-
             var seatRecord = await _context.CarriageSeats
-                .Where(cs => cs.CarriageId == coachId &&
-                             cs.Date.Date == today &&
-                             cs.Date.Hour == currentHour)
+                .Where(cs => cs.CarriageId == coachId)
+                .OrderByDescending(cs => cs.Date)
                 .FirstOrDefaultAsync();
 
             if (seatRecord == null)
             {
-                // Create new seat record for this hour
+                // Create first record for this coach
                 seatRecord = new CarriageSeats
                 {
                     CarriageId = coachId,
-                    Date = new DateTime(today.Year, today.Month, today.Day, currentHour, 0, 0),
+                    Date = DateTime.UtcNow,
                     TotalSeats = 24,
                     OcupiedSeats = isOccupied ? 1 : 0,
                     OcupiedSeatsBitMap = isOccupied ? (1 << (seatNumber - 1)) : 0
@@ -68,23 +64,6 @@ namespace backend.Services
             await _context.SaveChangesAsync();
             _logger.LogInformation("Seat data updated: Coach {coachId}, Seat {seatNumber}, Occupied: {isOccupied}, Total Occupied: {occupied}/{total}",
                 coachId, seatNumber, isOccupied, seatRecord.OcupiedSeats, seatRecord.TotalSeats);
-        }
-
-        public bool IsSeatOccupied(int seatBitMap, int seatNumber)
-        {
-            var seatBit = 1 << (seatNumber - 1);
-            return (seatBitMap & seatBit) != 0;
-        }
-
-        public int GetOccupiedSeatCount(int seatBitMap)
-        {
-            int count = 0;
-            while (seatBitMap > 0)
-            {
-                count += seatBitMap & 1;
-                seatBitMap >>= 1;
-            }
-            return count;
         }
     }
 }

@@ -15,7 +15,7 @@ namespace backend.Services
         private IMqttClient? _mqttClient;
 
         public MqttSubscriberService(
-            IServiceProvider serviceProvider, 
+            IServiceProvider serviceProvider,
             ILogger<MqttSubscriberService> logger)
         {
             _serviceProvider = serviceProvider;
@@ -44,7 +44,7 @@ namespace backend.Services
                 await _mqttClient.SubscribeAsync(new MqttTopicFilterBuilder()
                     .WithTopic("train/+/coach/+/+")
                     .Build(), stoppingToken);
-                    
+
                 _logger.LogInformation("✅ Subscribed to IoT topics: train/+/coach/+/+");
             }
             catch (Exception ex)
@@ -59,14 +59,10 @@ namespace backend.Services
             {
                 var topic = e.ApplicationMessage.Topic;
                 var payload = e.ApplicationMessage.ConvertPayloadToString();
-                
+
                 _logger.LogInformation("📨 Received MQTT message on topic: {topic} - {payload}", topic, payload);
-                
+
                 using var scope = _serviceProvider.CreateScope();
-                var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-                var temperatureService = scope.ServiceProvider.GetRequiredService<TemperatureService>();
-                var noiseService = scope.ServiceProvider.GetRequiredService<NoiseService>();
-                var seatService = scope.ServiceProvider.GetRequiredService<SeatService>();
 
                 // Parse topic: train/IC-123/coach/1/temperature
                 var topicParts = topic.Split('/');
@@ -80,15 +76,15 @@ namespace backend.Services
                     {
                         if (sensorType == "temperature")
                         {
-                            await HandleTemperatureData(context, payload, coachId, temperatureService);
+                            await HandleTemperatureData(payload, coachId, scope.ServiceProvider.GetRequiredService<TemperatureService>());
                         }
                         else if (sensorType == "noise")
                         {
-                            await HandleNoiseData(context, payload, coachId, noiseService);
+                            await HandleNoiseData(payload, coachId, scope.ServiceProvider.GetRequiredService<NoiseService>());
                         }
                         else if (sensorType == "seat")
                         {
-                            await HandleSeatData(context, payload, coachId, topic, seatService);
+                            await HandleSeatData(payload, coachId, scope.ServiceProvider.GetRequiredService<SeatService>());
                         }
                     }
                 }
@@ -99,30 +95,30 @@ namespace backend.Services
             }
         }
 
-        private async Task HandleTemperatureData(ApplicationDbContext context, string payload, int coachId, TemperatureService temperatureService)
+        private async Task HandleTemperatureData(string payload, int coachId, TemperatureService temperatureService)
         {
             try
             {
                 var data = JsonSerializer.Deserialize<JsonElement>(payload);
-                
+
                 if (data.TryGetProperty("temperature_celsius", out var tempElement))
                 {
                     var temperature = tempElement.GetSingle();
-                    
+
                     // Extract additional temperature data from Go publisher
                     var humidity = 0.0f;
                     var sensorLocation = "unknown";
-                    
+
                     if (data.TryGetProperty("humidity", out var humidityElement))
                     {
                         humidity = humidityElement.GetSingle();
                     }
-                    
+
                     if (data.TryGetProperty("sensor_location", out var locationElement))
                     {
                         sensorLocation = locationElement.GetString() ?? "unknown";
                     }
-                    
+
                     // Delegate to TemperatureService
                     await temperatureService.SaveTemperatureData(coachId, temperature, humidity, sensorLocation);
                 }
@@ -133,18 +129,18 @@ namespace backend.Services
             }
         }
 
-        private async Task HandleNoiseData(ApplicationDbContext context, string payload, int coachId, NoiseService noiseService)
+        private async Task HandleNoiseData(string payload, int coachId, NoiseService noiseService)
         {
             try
             {
                 var data = JsonSerializer.Deserialize<JsonElement>(payload);
-                
+
                 if (data.TryGetProperty("decibel_level", out var noiseElement))
                 {
                     var noiseLevel = noiseElement.GetSingle();
-                    var location = data.TryGetProperty("location", out var locationElement) ? 
+                    var location = data.TryGetProperty("location", out var locationElement) ?
                                   locationElement.GetString() ?? "unknown" : "unknown";
-                    
+
                     // Delegate to NoiseService
                     await noiseService.SaveNoiseData(coachId, noiseLevel, location);
                 }
@@ -155,20 +151,20 @@ namespace backend.Services
             }
         }
 
-        private async Task HandleSeatData(ApplicationDbContext context, string payload, int coachId, string topic, SeatService seatService)
+        private async Task HandleSeatData(string payload, int coachId, SeatService seatService)
         {
             try
             {
                 var data = JsonSerializer.Deserialize<JsonElement>(payload);
-                
+
                 var isOccupied = true; // Default to occupied
                 var seatNumber = 0;
-                
+
                 if (data.TryGetProperty("available", out var availableElement))
                 {
                     isOccupied = !availableElement.GetBoolean(); // Available = false means occupied
                 }
-                
+
                 if (data.TryGetProperty("seat", out var seatElement))
                 {
                     seatNumber = seatElement.GetInt32();

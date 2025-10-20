@@ -16,7 +16,6 @@ namespace backend.Data
 
         // Define your DbSets for each entity you want to store
         public DbSet<CarriageSeats> CarriageSeats { get; set; }
-        public DbSet<CarriageNoiseAndTemp> CarriageNoiseAndTemps { get; set; }
         public DbSet<CarriageTemperature> CarriageTemperatures { get; set; }
         public DbSet<CarriageNoise> CarriageNoises { get; set; }
 
@@ -25,9 +24,6 @@ namespace backend.Data
         {
             modelBuilder.Entity<CarriageSeats>()
                 .HasKey(cs => new { cs.CarriageId, cs.Date });
-
-            modelBuilder.Entity<CarriageNoiseAndTemp>()
-                .HasKey(cnt => new { cnt.CarriageId, cnt.Date });
 
             modelBuilder.Entity<CarriageTemperature>()
                 .HasKey(ct => new { ct.CarriageId, ct.Date });

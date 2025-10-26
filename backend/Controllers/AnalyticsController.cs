@@ -25,18 +25,23 @@ namespace backend.Controllers
             var timeRange = GetTimeRange(timeSpan);
             var startTime = DateTime.UtcNow.AddMinutes(-timeRange);
 
-            var query = _context.CarriageSeats
-                .Where(cs => cs.Date >= startTime);
+            // Get all seat data first
+            var allSeats = await _context.CarriageSeats.ToListAsync();
+            
+            // Get the latest record for each carriage
+            var latestSeats = allSeats
+                .GroupBy(cs => cs.CarriageId)
+                .Select(g => g.OrderByDescending(cs => cs.Date).First())
+                .ToList();
 
+            // Filter by coachId if specified
             if (coachId.HasValue)
             {
-                query = query.Where(cs => cs.CarriageId == coachId.Value);
+                latestSeats = latestSeats.Where(cs => cs.CarriageId == coachId.Value).ToList();
             }
 
-            var seatData = await query.ToListAsync();
-
-            var totalSeats = seatData.Any() ? seatData.Sum(s => s.TotalSeats) : 0;
-            var totalOccupied = seatData.Any() ? seatData.Sum(s => s.OcupiedSeats) : 0;
+            var totalSeats = latestSeats.Any() ? latestSeats.Sum(s => s.TotalSeats) : 0;
+            var totalOccupied = latestSeats.Any() ? latestSeats.Sum(s => s.OcupiedSeats) : 0;
             var occupancyRate = totalSeats > 0 ? (totalOccupied * 100.0 / totalSeats) : 0;
 
             return Ok(new
@@ -44,7 +49,7 @@ namespace backend.Controllers
                 totalPassengers = totalOccupied,
                 totalSeats = totalSeats,
                 occupancyRate = Math.Round(occupancyRate, 1),
-                activeCarriages = seatData.Select(s => s.CarriageId).Distinct().Count()
+                activeCarriages = latestSeats.Count
             });
         }
 
@@ -55,24 +60,29 @@ namespace backend.Controllers
             var timeRange = GetTimeRange(timeSpan);
             var startTime = DateTime.UtcNow.AddMinutes(-timeRange);
 
-            var query = _context.CarriageTemperatures
-                .Where(ct => ct.Date >= startTime);
+            // Get all temperature data first
+            var allTemps = await _context.CarriageTemperatures.ToListAsync();
+            
+            // Get the latest record for each carriage
+            var latestTemps = allTemps
+                .GroupBy(ct => ct.CarriageId)
+                .Select(g => g.OrderByDescending(ct => ct.Date).First())
+                .ToList();
 
+            // Filter by coachId if specified
             if (coachId.HasValue)
             {
-                query = query.Where(ct => ct.CarriageId == coachId.Value);
+                latestTemps = latestTemps.Where(ct => ct.CarriageId == coachId.Value).ToList();
             }
 
-            var tempData = await query.ToListAsync();
-
-            var avgTemperature = tempData.Any() ? tempData.Average(t => t.Temperature) : 0;
-            var avgHumidity = tempData.Any() ? tempData.Average(t => t.Humidity) : 0;
+            var avgTemperature = latestTemps.Any() ? latestTemps.Average(t => t.Temperature) : 0;
+            var avgHumidity = latestTemps.Any() ? latestTemps.Average(t => t.Humidity) : 0;
 
             return Ok(new
             {
                 avgTemperature = Math.Round(avgTemperature, 1),
                 avgHumidity = Math.Round(avgHumidity, 1),
-                dataPoints = tempData.Count
+                dataPoints = latestTemps.Count
             });
         }
 
@@ -83,22 +93,27 @@ namespace backend.Controllers
             var timeRange = GetTimeRange(timeSpan);
             var startTime = DateTime.UtcNow.AddMinutes(-timeRange);
 
-            var query = _context.CarriageNoises
-                .Where(cn => cn.Date >= startTime);
+            // Get all noise data first
+            var allNoise = await _context.CarriageNoises.ToListAsync();
+            
+            // Get the latest record for each carriage
+            var latestNoise = allNoise
+                .GroupBy(cn => cn.CarriageId)
+                .Select(g => g.OrderByDescending(cn => cn.Date).First())
+                .ToList();
 
+            // Filter by coachId if specified
             if (coachId.HasValue)
             {
-                query = query.Where(cn => cn.CarriageId == coachId.Value);
+                latestNoise = latestNoise.Where(cn => cn.CarriageId == coachId.Value).ToList();
             }
 
-            var noiseData = await query.ToListAsync();
-
-            var avgNoiseLevel = noiseData.Any() ? noiseData.Average(n => n.NoiseLevel) : 0;
+            var avgNoiseLevel = latestNoise.Any() ? latestNoise.Average(n => n.NoiseLevel) : 0;
 
             return Ok(new
             {
                 avgNoiseLevel = Math.Round(avgNoiseLevel, 1),
-                dataPoints = noiseData.Count
+                dataPoints = latestNoise.Count
             });
         }
 
@@ -248,15 +263,18 @@ namespace backend.Controllers
                 query = query.Where(cs => cs.CarriageId == coachId.Value);
             }
 
-            var latestSeats = await query
+            // Get all seat data and process in memory to avoid EF Core translation issues
+            var allSeats = await query.ToListAsync();
+            
+            // Group by CarriageId and get the latest record for each
+            var latestSeats = allSeats
                 .GroupBy(cs => cs.CarriageId)
-                .Select(g => g.OrderByDescending(cs => cs.Date).FirstOrDefault())
-                .Where(cs => cs != null)
-                .ToListAsync();
+                .Select(g => g.OrderByDescending(cs => cs.Date).First())
+                .ToList();
 
             var result = latestSeats.Select(seat => new
             {
-                coach = $"Coach {seat!.CarriageId}",
+                coach = $"Coach {seat.CarriageId}",
                 occupied = seat.OcupiedSeats,
                 available = seat.TotalSeats - seat.OcupiedSeats
             }).ToList();

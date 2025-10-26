@@ -16,16 +16,31 @@ namespace backend.Services
         public CoapServerService()
         {
             _server = new CoapServer();
+            
             // Create an instance of our observable resource with path "counter"
             _counterResource = new CoapObservable("counter");
             _server.Add(_counterResource); // Add the resource to the server
+
+            // Create root "seats" resource
+            var seatsRoot = new CoAP.Server.Resources.Resource("seats");
+            _server.Add(seatsRoot);
+
+            // Register coach resources (1..10 for now, can be dynamic based on DB)
+            for (int coachId = 1; coachId <= 10; coachId++)
+            {
+                var coachResource = new CoapCoachResource(coachId);
+                CoapResourceManager.RegisterCoachResource(coachResource, seatsRoot);
+            }
         }
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
             Console.WriteLine("Starting CoAP Server...");
             _server.Start(); // Start the CoAP server
-            Console.WriteLine($"CoAP Server started on port {CoAP.CoapConstants.DefaultPort} (UDP). Resource '/counter' is observable.");
+            Console.WriteLine($"CoAP Server started on port {CoAP.CoapConstants.DefaultPort} (UDP).");
+            Console.WriteLine("Observable resources:");
+            Console.WriteLine("  - '/counter' (test counter)");
+            Console.WriteLine("  - '/seats/{{coachId}}/available' (seat availability for coaches 1-10)");
             return Task.CompletedTask;
         }
 

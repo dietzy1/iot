@@ -55,52 +55,52 @@ export class ApiClient {
     const params = new URLSearchParams()
     if (coachId !== null) params.append("coachId", coachId.toString())
     params.append("timeSpan", timeSpan)
-    return this.request(`/analytics/occupancy?${params}`)
+    return this.request(`analytics/occupancy?${params}`)
   }
 
   async getTemperature(coachId: number | null = null, timeSpan: string = "1hour") {
     const params = new URLSearchParams()
     if (coachId !== null) params.append("coachId", coachId.toString())
     params.append("timeSpan", timeSpan)
-    return this.request(`/analytics/temperature?${params}`)
+    return this.request(`analytics/temperature?${params}`)
   }
 
   async getNoise(coachId: number | null = null, timeSpan: string = "1hour") {
     const params = new URLSearchParams()
     if (coachId !== null) params.append("coachId", coachId.toString())
     params.append("timeSpan", timeSpan)
-    return this.request(`/analytics/noise?${params}`)
+    return this.request(`analytics/noise?${params}`)
   }
 
   async getLastUpdated() {
-    return this.request(`/analytics/last-updated`)
+    return this.request(`analytics/last-updated`)
   }
 
   async getTemperatureHistory(coachId: number | null = null, timeSpan: string = "1hour") {
     const params = new URLSearchParams()
     if (coachId !== null) params.append("coachId", coachId.toString())
     params.append("timeSpan", timeSpan)
-    return this.request(`/analytics/temperature/history?${params}`)
+    return this.request(`analytics/temperature/history?${params}`)
   }
 
   async getNoiseMonitoring(coachId: number | null = null, timeSpan: string = "1hour") {
     const params = new URLSearchParams()
     if (coachId !== null) params.append("coachId", coachId.toString())
     params.append("timeSpan", timeSpan)
-    return this.request(`/analytics/noise/history?${params}`)
+    return this.request(`analytics/noise/history?${params}`)
   }
 
   async getSeatAvailability(coachId: number | null = null) {
     const params = new URLSearchParams()
     if (coachId !== null) params.append("coachId", coachId.toString())
-    return this.request(`/analytics/seats/availability?${params}`)
+    return this.request(`analytics/seats/availability?${params}`)
   }
 
   async getRecentEvents(coachId: number | null = null, limit: number = 50) {
     const params = new URLSearchParams()
     if (coachId !== null) params.append("coachId", coachId.toString())
     params.append("limit", limit.toString())
-    return this.request(`/analytics/events/recent?${params}`)
+    return this.request(`analytics/events/recent?${params}`)
   }
 }
 
@@ -111,11 +111,11 @@ export interface StatsOverview {
   totalPassengers: number;
   totalSeats: number;
   occupancyRate: number;
-  occupancyTrend: number;
+  occupancyTrend?: number;
   activeCarriages: number;
-  avgTemperature: number;
-  avgNoiseLevel: number;
-  lastUpdated: string;
+  avgTemperature?: number;
+  avgNoiseLevel?: number;
+  lastUpdated?: string;
 }
 
 export interface SeatAvailability {

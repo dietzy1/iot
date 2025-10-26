@@ -95,7 +95,18 @@ func (g *Generator) NextDelay() time.Duration {
 // Generate a random seat event
 func (g *Generator) RandomSeatEvent(coach int) (SeatEvent, []byte) {
 	seat := 1 + g.rnd.Intn(g.cfg.SeatsPerCoach)
-	available := g.rnd.Intn(100) < 70 // 70% chance available
+
+	// Use time-based waves to create more visible patterns
+	// Every minute cycles through: filling -> emptying -> filling -> emptying
+	minute := time.Now().Unix() / 30 // 30-second cycles
+	isFilling := minute%2 == 0
+
+	var available bool
+	if isFilling {
+		available = g.rnd.Intn(100) < 30 // 30% chance available = seats getting occupied
+	} else {
+		available = g.rnd.Intn(100) < 70 // 70% chance available = seats getting freed
+	}
 
 	e := SeatEvent{
 		BaseEvent: BaseEvent{

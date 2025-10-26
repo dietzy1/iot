@@ -1,5 +1,6 @@
 using backend.Data;
 using backend.Models;
+using backend.Resources;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -62,8 +63,13 @@ namespace backend.Services
             }
 
             await _context.SaveChangesAsync();
-            _logger.LogInformation("Seat data updated: Coach {coachId}, Seat {seatNumber}, Occupied: {isOccupied}, Total Occupied: {occupied}/{total}",
-                coachId, seatNumber, isOccupied, seatRecord.OcupiedSeats, seatRecord.TotalSeats);
+
+            // Notify CoAP observers about new available seats
+            var available = seatRecord.TotalSeats - seatRecord.OcupiedSeats;
+            CoapResourceManager.NotifySeatUpdate(coachId, available);
+
+            _logger.LogInformation("Seat data updated: Coach {coachId}, Seat {seatNumber}, Occupied: {isOccupied}, Total Occupied: {occupied}/{total}, Available: {available}",
+                coachId, seatNumber, isOccupied, seatRecord.OcupiedSeats, seatRecord.TotalSeats, available);
         }
 
         public async Task<int> GetAvailableSeats(int coachId, DateTime? dateTime)

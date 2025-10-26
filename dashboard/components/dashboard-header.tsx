@@ -1,6 +1,23 @@
+"use client"
+
 import { ActivityIcon, TrainIcon } from "@/components/icons"
+import { useEffect, useState } from "react"
 
 export function DashboardHeader() {
+  const [currentTime, setCurrentTime] = useState<string>("")
+
+  useEffect(() => {
+    // Set initial time on client side only
+    setCurrentTime(new Date().toLocaleTimeString())
+
+    // Update time every second
+    const interval = setInterval(() => {
+      setCurrentTime(new Date().toLocaleTimeString())
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [])
+
   return (
     <header className="border-b border-border bg-card">
       <div className="container mx-auto px-4 py-4">
@@ -22,7 +39,7 @@ export function DashboardHeader() {
             </div>
             <div className="text-right">
               <p className="text-xs text-muted-foreground">Last updated</p>
-              <p className="text-sm font-mono text-foreground">{new Date().toLocaleTimeString()}</p>
+              <p className="text-sm font-mono text-foreground">{currentTime || "--:--:--"}</p>
             </div>
           </div>
         </div>

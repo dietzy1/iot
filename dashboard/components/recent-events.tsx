@@ -109,12 +109,12 @@ export function RecentEvents({ coachId }: RecentEventsProps) {
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
-          {events.map((event) => {
+          {events.map((event, index) => {
             const Icon = getEventIcon(event.type)
             const colors = getEventColors(event.severity)
             
             return (
-              <div key={event.id} className="flex items-start gap-3 rounded-lg bg-secondary/50 p-3">
+              <div key={`${event.id}-${index}`} className="flex items-start gap-3 rounded-lg bg-secondary/50 p-3">
                 <div className={`rounded-md ${colors.bg} p-2`}>
                   <Icon className={`h-4 w-4 ${colors.color}`} />
                 </div>

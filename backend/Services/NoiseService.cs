@@ -16,11 +16,11 @@ namespace backend.Services
             _logger = logger;
         }
 
-        public async Task SaveNoiseData(int coachId, float noiseLevel, string location)
+        public async Task SaveNoiseData(int carriageId, float noiseLevel, string location)
         {
             var newRecord = new CarriageNoise
             {
-                CarriageId = coachId,
+                CarriageId = carriageId,
                 Date = DateTime.UtcNow,
                 NoiseLevel = noiseLevel,
                 Location = location
@@ -29,11 +29,11 @@ namespace backend.Services
             _context.CarriageNoises.Add(newRecord);
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation("Noise data saved: Coach {coachId}, Noise: {noiseLevel}dB, Location: {location}",
-                coachId, noiseLevel, location);
+            _logger.LogInformation("Noise data saved: Carriage {carriageId}, Noise: {noiseLevel}dB, Location: {location}",
+                carriageId, noiseLevel, location);
         }
 
-        public async Task<List<Tuple<float, DateTime>>> GetAverageNoiseLevelPer5Min(int coachId, DateTime? from, DateTime? to)
+        public async Task<List<Tuple<float, DateTime>>> GetAverageNoiseLevelPer5Min(int carriageId, DateTime? from, DateTime? to)
         {
             if (to == null)
             {
@@ -51,7 +51,7 @@ namespace backend.Services
             do
             {
                 var Noises = await _context.CarriageNoises
-                    .Where(cn => cn.CarriageId == coachId && cn.Date >= intermediateDateTime && cn.Date <= to)
+                    .Where(cn => cn.CarriageId == carriageId && cn.Date >= intermediateDateTime && cn.Date <= to)
                     .ToListAsync();
 
                 if (Noises.Count > 0)
@@ -65,8 +65,8 @@ namespace backend.Services
             }
             while (intermediateDateTime >= from);
 
-            _logger.LogInformation("Average noise level for Coach {coachId} from {from} to {to} is queried",
-                coachId, from, to);
+            _logger.LogInformation("Average noise level for Carriage {carriageId} from {from} to {to} is queried",
+                carriageId, from, to);
 
             return results;
         }

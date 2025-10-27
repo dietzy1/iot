@@ -10,11 +10,11 @@ import { RecentEvents } from "@/components/recent-events"
 import { useState } from "react"
 
 export default function DashboardPage() {
-  const [selectedCoach, setSelectedCoach] = useState<number | null>(null)
+  const [selectedCarriage, setSelectedCarriage] = useState<number | null>(null)
   const [selectedTimeSpan, setSelectedTimeSpan] = useState<string>("1hour")
 
-  const handleFilterChange = (coachId: number | null, timeSpan: string) => {
-    setSelectedCoach(coachId)
+  const handleFilterChange = (carriageId: number | null, timeSpan: string) => {
+    setSelectedCarriage(carriageId)
     setSelectedTimeSpan(timeSpan)
   }
 
@@ -25,16 +25,16 @@ export default function DashboardPage() {
         
         <FilterSelector onFilterChange={handleFilterChange} />
         
-        <StatsOverview coachId={selectedCoach} timeSpan={selectedTimeSpan} />
+        <StatsOverview carriageId={selectedCarriage} timeSpan={selectedTimeSpan} />
         
         <div className="grid gap-6 md:grid-cols-2">
-          <TemperatureChart coachId={selectedCoach} timeSpan={selectedTimeSpan} />
-          <NoiseMonitoringChart coachId={selectedCoach} timeSpan={selectedTimeSpan} />
+          <TemperatureChart carriageId={selectedCarriage} timeSpan={selectedTimeSpan} />
+          <NoiseMonitoringChart carriageId={selectedCarriage} timeSpan={selectedTimeSpan} />
         </div>
         
         <div className="grid gap-6 md:grid-cols-2">
-          <SeatAvailabilityChart coachId={selectedCoach} />
-          <RecentEvents coachId={selectedCoach} />
+          <SeatAvailabilityChart carriageId={selectedCarriage} />
+          <RecentEvents carriageId={selectedCarriage} />
         </div>
       </div>
     </div>

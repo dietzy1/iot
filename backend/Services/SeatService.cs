@@ -17,19 +17,19 @@ namespace backend.Services
             _logger = logger;
         }
 
-        public async Task UpdateSeatData(int coachId, int seatNumber, bool isOccupied)
+        public async Task UpdateSeatData(int carriageId, int seatNumber, bool isOccupied)
         {
             var seatRecord = await _context.CarriageSeats
-                .Where(cs => cs.CarriageId == coachId)
+                .Where(cs => cs.CarriageId == carriageId)
                 .OrderByDescending(cs => cs.Date)
                 .FirstOrDefaultAsync();
 
             if (seatRecord == null)
             {
-                // Create first record for this coach
+                // Create first record for this carriage
                 seatRecord = new CarriageSeats
                 {
-                    CarriageId = coachId,
+                    CarriageId = carriageId,
                     Date = DateTime.UtcNow,
                     TotalSeats = 24,
                     OcupiedSeats = isOccupied ? 1 : 0,
@@ -66,13 +66,13 @@ namespace backend.Services
 
             // Notify CoAP observers about new available seats
             var available = seatRecord.TotalSeats - seatRecord.OcupiedSeats;
-            CoapResourceManager.NotifySeatUpdate(coachId, available);
+            CoapResourceManager.NotifySeatUpdate(carriageId, available);
 
-            _logger.LogInformation("Seat data updated: Coach {coachId}, Seat {seatNumber}, Occupied: {isOccupied}, Total Occupied: {occupied}/{total}, Available: {available}",
-                coachId, seatNumber, isOccupied, seatRecord.OcupiedSeats, seatRecord.TotalSeats, available);
+            _logger.LogInformation("Seat data updated: Carriage {carriageId}, Seat {seatNumber}, Occupied: {isOccupied}, Total Occupied: {occupied}/{total}, Available: {available}",
+                carriageId, seatNumber, isOccupied, seatRecord.OcupiedSeats, seatRecord.TotalSeats, available);
         }
 
-        public async Task<int> GetAvailableSeats(int coachId, DateTime? dateTime)
+        public async Task<int> GetAvailableSeats(int carriageId, DateTime? dateTime)
         {
             if (dateTime == null)
             {
@@ -80,7 +80,7 @@ namespace backend.Services
             }
 
             var seatRecord = await _context.CarriageSeats
-                .Where(cs => cs.CarriageId == coachId && cs.Date <= dateTime)
+                .Where(cs => cs.CarriageId == carriageId && cs.Date <= dateTime)
                 .OrderByDescending(cs => cs.Date)
                 .FirstOrDefaultAsync();
 
@@ -92,7 +92,7 @@ namespace backend.Services
             return seatRecord.TotalSeats - seatRecord.OcupiedSeats;
         }
 
-        public async Task<int> GetSeatsBitMap(int coachId, DateTime? dateTime)
+        public async Task<int> GetSeatsBitMap(int carriageId, DateTime? dateTime)
         {
             if (dateTime == null)
             {
@@ -100,7 +100,7 @@ namespace backend.Services
             }
 
             var seatRecord = await _context.CarriageSeats
-                .Where(cs => cs.CarriageId == coachId && cs.Date <= dateTime)
+                .Where(cs => cs.CarriageId == carriageId && cs.Date <= dateTime)
                 .OrderByDescending(cs => cs.Date)
                 .FirstOrDefaultAsync();
 

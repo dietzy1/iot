@@ -8,12 +8,12 @@ from aiocoap import *
 logging.basicConfig(level=logging.INFO)
 
 class SeatDisplayGUI:
-    def __init__(self, coach_id):
-        self.coach_id = coach_id
+    def __init__(self, carriage_id):
+        self.carriage_id = carriage_id
         self.current_seats = None  # Track last value for deduplication
         
         self.root = tk.Tk()
-        self.root.title(f"Train carriage {coach_id} - Seat Monitor")
+        self.root.title(f"Train carriage {carriage_id} - Seat Monitor")
         self.root.geometry("600x400")
         self.root.configure(bg='#1a1a2e')
         
@@ -23,7 +23,7 @@ class SeatDisplayGUI:
         
         tk.Label(
             header_frame,
-            text=f"🚂 carriage {coach_id}",
+            text=f"🚂 carriage {carriage_id}",
             font=('Helvetica', 24, 'bold'),
             fg='#ffffff',
             bg='#16213e'
@@ -112,7 +112,7 @@ class SeatDisplayGUI:
         """Start the GUI main loop"""
         self.root.mainloop()
 
-async def observe_coach(gui, coach_id):
+async def observe_carriage(gui, carriage_id):
     """Async function to observe CoAP resource"""
     max_retries = 5
     retry_delay = 3
@@ -120,7 +120,7 @@ async def observe_coach(gui, coach_id):
     for attempt in range(1, max_retries + 1):
         try:
             context = await Context.create_client_context()
-            uri = f'coap://localhost/seats/{coach_id}/available'
+            uri = f'coap://localhost/seats/{carriage_id}/available'
             request = Message(code=GET, uri=uri, observe=0)
             
             gui.update_status(f"🔄 Connecting to CoAP server (attempt {attempt}/{max_retries})...")
@@ -162,22 +162,22 @@ async def observe_coach(gui, coach_id):
                 print(f"❌ An unexpected error occurred: {e}")
                 break
 
-def start_observer(gui, coach_id):
+def start_observer(gui, carriage_id):
     """Start the CoAP observer in an asyncio event loop"""
-    asyncio.run(observe_coach(gui, coach_id))
+    asyncio.run(observe_carriage(gui, carriage_id))
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="GUI seat availability monitor for train coaches")
-    parser.add_argument("--coach", "-c", type=int, required=True, 
+    parser = argparse.ArgumentParser(description="GUI seat availability monitor for train carriages")
+    parser.add_argument("--carriage", "-c", type=int, required=True, 
                        choices=range(1, 11), metavar="[1-10]",
-                       help="Coach number to monitor (1-10)")
+                       help="Carriage number to monitor (1-10)")
     args = parser.parse_args()
     
     # Create GUI
-    gui = SeatDisplayGUI(args.coach)
+    gui = SeatDisplayGUI(args.carriage)
     
     # Start CoAP observer in a background thread
-    observer_thread = Thread(target=start_observer, args=(gui, args.coach), daemon=True)
+    observer_thread = Thread(target=start_observer, args=(gui, args.carriage), daemon=True)
     observer_thread.start()
     
     # Run GUI main loop (blocks until window closed)

@@ -18,8 +18,8 @@ import (
 func main() {
 	var (
 		train    = flag.String("train", "IC-123", "train number/id")
-		coaches  = flag.Int("coaches", 2, "number of coaches")
-		seats    = flag.Int("seats", 32, "seats per coach")
+		coaches  = flag.Int("coaches", 2, "number of carriages")
+		seats    = flag.Int("seats", 32, "seats per carriage")
 		interval = flag.Duration("interval", 2*time.Second, "base interval between messages")
 		jitter   = flag.Duration("jitter", 500*time.Millisecond, "max additional or subtracted jitter")
 		seed     = flag.Int64("seed", 0, "random seed (0=random)")
@@ -38,7 +38,7 @@ func main() {
 	g := sim.NewGenerator(sim.Config{
 		Train:         *train,
 		Coaches:       *coaches,
-		SeatsPerCoach: *seats,
+		SeatsPerCarriage: *seats,
 		BaseInterval:  *interval,
 		Jitter:        *jitter,
 		Seed:          *seed,
@@ -70,10 +70,10 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	// Start one loop per coach
+	// Start one loop per carriage
 	done := make(chan struct{})
-	for coach := 1; coach <= *coaches; coach++ {
-		coachNum := coach
+	for carriage := 1; carriage <= *coaches; carriage++ {
+		carriageNum := carriage
 		go func() {
 			defer func() { done <- struct{}{} }()
 			// randomize initial offset so topics interleave
@@ -87,18 +87,18 @@ func main() {
 				if ctx.Err() != nil {
 					break
 				}
-				event, payload := g.RandomEvent(coachNum)
+				event, payload := g.RandomEvent(carriageNum)
 
 				var topic string
 				switch event.(type) {
 				case sim.SeatEvent:
-					topic = g.SeatTopic(coachNum)
+					topic = g.SeatTopic(carriageNum)
 				case sim.NoiseEvent:
-					topic = g.NoiseTopic(coachNum)
+					topic = g.NoiseTopic(carriageNum)
 				case sim.TemperatureEvent:
-					topic = g.TemperatureTopic(coachNum)
+					topic = g.TemperatureTopic(carriageNum)
 				default:
-					topic = g.Topic(coachNum) // fallback to generic topic
+					topic = g.Topic(carriageNum) // fallback to generic topic
 				}
 
 				if err := p.Publish(topic, payload); err != nil {

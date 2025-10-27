@@ -32,10 +32,10 @@ const getEventColors = (severity: string) => {
 }
 
 interface RecentEventsProps {
-  coachId: number | null
+  carriageId: number | null
 }
 
-export function RecentEvents({ coachId }: RecentEventsProps) {
+export function RecentEvents({ carriageId }: RecentEventsProps) {
   const [events, setEvents] = useState<RecentEvent[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -44,7 +44,7 @@ export function RecentEvents({ coachId }: RecentEventsProps) {
     const fetchEvents = async () => {
       try {
         setLoading(true)
-        const eventsData = await apiClient.getRecentEvents(coachId, 8) as RecentEvent[]
+        const eventsData = await apiClient.getRecentEvents(carriageId, 8) as RecentEvent[]
         setEvents(eventsData)
         setError(null)
       } catch (err) {
@@ -59,7 +59,7 @@ export function RecentEvents({ coachId }: RecentEventsProps) {
     // Refresh every 30 seconds
     const interval = setInterval(fetchEvents, 30000)
     return () => clearInterval(interval)
-  }, [coachId])
+  }, [carriageId])
 
   if (loading) {
     return (

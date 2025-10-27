@@ -25,11 +25,11 @@ namespace backend.Services
             var seatsRoot = new CoAP.Server.Resources.Resource("seats");
             _server.Add(seatsRoot);
 
-            // Register coach resources (1..10 for now, can be dynamic based on DB)
-            for (int coachId = 1; coachId <= 10; coachId++)
+            // Register carriage resources (1..10 for now, can be dynamic based on DB)
+            for (int carriageId = 1; carriageId <= 10; carriageId++)
             {
-                var coachResource = new CoapCoachResource(coachId);
-                CoapResourceManager.RegisterCoachResource(coachResource, seatsRoot);
+                var carriageResource = new CoapCarriageResource(carriageId);
+                CoapResourceManager.RegisterCarriageResource(carriageResource, seatsRoot);
             }
         }
 
@@ -40,7 +40,7 @@ namespace backend.Services
             Console.WriteLine($"CoAP Server started on port {CoAP.CoapConstants.DefaultPort} (UDP).");
             Console.WriteLine("Observable resources:");
             Console.WriteLine("  - '/counter' (test counter)");
-            Console.WriteLine("  - '/seats/{{coachId}}/available' (seat availability for coaches 1-10)");
+            Console.WriteLine("  - '/seats/{{carriageId}}/available' (seat availability for carriages 1-10)");
             return Task.CompletedTask;
         }
 

@@ -11,7 +11,7 @@ type BaseEvent struct {
 	EventType string    `json:"event_type"`
 	Timestamp time.Time `json:"timestamp"`
 	Train     string    `json:"train"`
-	Coach     int       `json:"coach"`
+	Carriage  int       `json:"carriage"`
 }
 
 // Seat availability event
@@ -39,7 +39,7 @@ type TemperatureEvent struct {
 type Config struct {
 	Train         string
 	Coaches       int
-	SeatsPerCoach int
+	SeatsPerCarriage int
 	BaseInterval  time.Duration
 	Jitter        time.Duration
 	Seed          int64
@@ -58,23 +58,23 @@ func NewGenerator(cfg Config) *Generator {
 	return &Generator{cfg: cfg, rnd: rand.New(rand.NewSource(seed))}
 }
 
-func (g *Generator) Topic(coach int) string {
-	return "train/" + g.cfg.Train + "/coach/" + itoa(coach)
+func (g *Generator) Topic(carriage int) string {
+	return "train/" + g.cfg.Train + "/carriage/" + itoa(carriage)
 }
 
 // Topic for seat events
-func (g *Generator) SeatTopic(coach int) string {
-	return "train/" + g.cfg.Train + "/coach/" + itoa(coach) + "/seat"
+func (g *Generator) SeatTopic(carriage int) string {
+	return "train/" + g.cfg.Train + "/carriage/" + itoa(carriage) + "/seat"
 }
 
 // Topic for noise events
-func (g *Generator) NoiseTopic(coach int) string {
-	return "train/" + g.cfg.Train + "/coach/" + itoa(coach) + "/noise"
+func (g *Generator) NoiseTopic(carriage int) string {
+	return "train/" + g.cfg.Train + "/carriage/" + itoa(carriage) + "/noise"
 }
 
 // Topic for temperature events
-func (g *Generator) TemperatureTopic(coach int) string {
-	return "train/" + g.cfg.Train + "/coach/" + itoa(coach) + "/temperature"
+func (g *Generator) TemperatureTopic(carriage int) string {
+	return "train/" + g.cfg.Train + "/carriage/" + itoa(carriage) + "/temperature"
 }
 
 func (g *Generator) NextDelay() time.Duration {
@@ -93,8 +93,8 @@ func (g *Generator) NextDelay() time.Duration {
 }
 
 // Generate a random seat event
-func (g *Generator) RandomSeatEvent(coach int) (SeatEvent, []byte) {
-	seat := 1 + g.rnd.Intn(g.cfg.SeatsPerCoach)
+func (g *Generator) RandomSeatEvent(carriage int) (SeatEvent, []byte) {
+	seat := 1 + g.rnd.Intn(g.cfg.SeatsPerCarriage)
 
 	// Use time-based waves to create more visible patterns
 	// Every minute cycles through: filling -> emptying -> filling -> emptying
@@ -113,7 +113,7 @@ func (g *Generator) RandomSeatEvent(coach int) (SeatEvent, []byte) {
 			EventType: "seat",
 			Timestamp: time.Now().UTC(),
 			Train:     g.cfg.Train,
-			Coach:     coach,
+			Carriage:  carriage,
 		},
 		Seat:      seat,
 		Available: available,
@@ -123,7 +123,7 @@ func (g *Generator) RandomSeatEvent(coach int) (SeatEvent, []byte) {
 }
 
 // Generate a random noise event
-func (g *Generator) RandomNoiseEvent(coach int) (NoiseEvent, []byte) {
+func (g *Generator) RandomNoiseEvent(carriage int) (NoiseEvent, []byte) {
 	decibelLevel := 30.0 + g.rnd.Float64()*50.0 // 30-80 dB
 	locations := []string{"front", "middle", "back"}
 	location := locations[g.rnd.Intn(len(locations))]
@@ -133,7 +133,7 @@ func (g *Generator) RandomNoiseEvent(coach int) (NoiseEvent, []byte) {
 			EventType: "noise",
 			Timestamp: time.Now().UTC(),
 			Train:     g.cfg.Train,
-			Coach:     coach,
+			Carriage:  carriage,
 		},
 		DecibelLevel: decibelLevel,
 		Location:     location,
@@ -143,7 +143,7 @@ func (g *Generator) RandomNoiseEvent(coach int) (NoiseEvent, []byte) {
 }
 
 // Generate a random temperature event
-func (g *Generator) RandomTemperatureEvent(coach int) (TemperatureEvent, []byte) {
+func (g *Generator) RandomTemperatureEvent(carriage int) (TemperatureEvent, []byte) {
 	temperature := 18.0 + g.rnd.Float64()*15.0 // 18-33°C
 	humidity := 30.0 + g.rnd.Float64()*40.0    // 30-70%
 	locations := []string{"ceiling", "floor", "window", "door"}
@@ -154,7 +154,7 @@ func (g *Generator) RandomTemperatureEvent(coach int) (TemperatureEvent, []byte)
 			EventType: "temperature",
 			Timestamp: time.Now().UTC(),
 			Train:     g.cfg.Train,
-			Coach:     coach,
+			Carriage:  carriage,
 		},
 		TemperatureCelsius: temperature,
 		Humidity:           humidity,
@@ -165,17 +165,17 @@ func (g *Generator) RandomTemperatureEvent(coach int) (TemperatureEvent, []byte)
 }
 
 // Generate a random event of any type
-func (g *Generator) RandomEvent(coach int) (interface{}, []byte) {
+func (g *Generator) RandomEvent(carriage int) (interface{}, []byte) {
 	eventType := g.rnd.Intn(3)
 	switch eventType {
 	case 0:
-		return g.RandomSeatEvent(coach)
+		return g.RandomSeatEvent(carriage)
 	case 1:
-		return g.RandomNoiseEvent(coach)
+		return g.RandomNoiseEvent(carriage)
 	case 2:
-		return g.RandomTemperatureEvent(coach)
+		return g.RandomTemperatureEvent(carriage)
 	default:
-		return g.RandomSeatEvent(coach)
+		return g.RandomSeatEvent(carriage)
 	}
 }
 

@@ -7,18 +7,18 @@ import { apiClient, type TemperatureData } from "@/lib/api"
 import { useEffect, useState } from "react"
 
 interface TemperatureChartProps {
-  coachId: number | null
+  carriageId: number | null
   timeSpan: string
 }
 
-export function TemperatureChart({ coachId, timeSpan }: TemperatureChartProps) {
+export function TemperatureChart({ carriageId, timeSpan }: TemperatureChartProps) {
   const [data, setData] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [coachConfig, setCoachConfig] = useState<Record<string, { label: string; color: string }>>({})
+  const [carriageConfig, setCarriageConfig] = useState<Record<string, { label: string; color: string }>>({})
 
-  // Generate colors for coaches
-  const generateCoachColor = (index: number) => {
+  // Generate colors for carriages
+  const generateCarriageColor = (index: number) => {
     const colors = [
       "#f97316", // orange
       "#ef4444", // red  
@@ -39,7 +39,7 @@ export function TemperatureChart({ coachId, timeSpan }: TemperatureChartProps) {
       try {
         setLoading(true)
         // Fetch temperature data with filtering
-        const tempData = await apiClient.getTemperatureHistory(coachId, timeSpan) as TemperatureData[]
+        const tempData = await apiClient.getTemperatureHistory(carriageId, timeSpan) as TemperatureData[]
         
         // Format the data for the chart with actual timestamps
         const formattedData = tempData.map(item => {
@@ -56,34 +56,34 @@ export function TemperatureChart({ coachId, timeSpan }: TemperatureChartProps) {
           }
         }).sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime()) // Sort chronologically
         
-        // Dynamically detect coaches from the data
+        // Dynamically detect carriages from the data
         if (formattedData.length > 0) {
-          // Scan ALL data points to find all possible coaches (not just the first one)
-          const allCoachKeys = new Set<string>()
+          // Scan ALL data points to find all possible carriages (not just the first one)
+          const allCarriageKeys = new Set<string>()
           formattedData.forEach(dataPoint => {
             Object.keys(dataPoint).forEach(key => {
-              if (key.startsWith('coach')) {
-                allCoachKeys.add(key)
+              if (key.startsWith('carriage')) {
+                allCarriageKeys.add(key)
               }
             })
           })
           
-          const coachKeysArray = Array.from(allCoachKeys).sort((a, b) => {
-            const aNum = parseInt(a.replace('coach', ''))
-            const bNum = parseInt(b.replace('coach', ''))
+          const carriageKeysArray = Array.from(allCarriageKeys).sort((a, b) => {
+            const aNum = parseInt(a.replace('carriage', ''))
+            const bNum = parseInt(b.replace('carriage', ''))
             return aNum - bNum
           })
           
           const dynamicConfig: Record<string, { label: string; color: string }> = {}
-          coachKeysArray.forEach((coachKey, index) => {
-            const coachNumber = coachKey.replace('coach', '')
-            dynamicConfig[coachKey] = {
-              label: `Coach ${coachNumber} Temp (°C)`,
-              color: generateCoachColor(index)
+          carriageKeysArray.forEach((carriageKey, index) => {
+            const carriageNumber = carriageKey.replace('carriage', '')
+            dynamicConfig[carriageKey] = {
+              label: `Carriage ${carriageNumber} Temp (°C)`,
+              color: generateCarriageColor(index)
             }
           })
           
-          setCoachConfig(dynamicConfig)
+          setCarriageConfig(dynamicConfig)
         }
         
         setData(formattedData)
@@ -100,7 +100,7 @@ export function TemperatureChart({ coachId, timeSpan }: TemperatureChartProps) {
     // Refresh every 30 seconds
     const interval = setInterval(fetchData, 30000)
     return () => clearInterval(interval)
-  }, [coachId, timeSpan])
+  }, [carriageId, timeSpan])
 
   if (loading) {
     return (
@@ -140,7 +140,7 @@ export function TemperatureChart({ coachId, timeSpan }: TemperatureChartProps) {
       </CardHeader>
       <CardContent>
         <ChartContainer
-          config={coachConfig}
+          config={carriageConfig}
           className="h-[300px]"
         >
           <ResponsiveContainer width="100%" height="100%">
@@ -188,12 +188,12 @@ export function TemperatureChart({ coachId, timeSpan }: TemperatureChartProps) {
                   return null
                 }}
               />
-              {/* Dynamically render lines for all coaches */}
-              {Object.entries(coachConfig).map(([coachKey, config]) => (
+              {/* Dynamically render lines for all carriages */}
+              {Object.entries(carriageConfig).map(([carriageKey, config]) => (
                 <Line
-                  key={coachKey}
+                  key={carriageKey}
                   type="monotone"
-                  dataKey={coachKey}
+                  dataKey={carriageKey}
                   stroke={config.color}
                   strokeWidth={2}
                   dot={{ fill: config.color, r: 3 }}

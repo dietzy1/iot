@@ -7,18 +7,18 @@ import { apiClient, type NoiseData } from "@/lib/api"
 import { useEffect, useState } from "react"
 
 interface NoiseMonitoringChartProps {
-  coachId: number | null
+  carriageId: number | null
   timeSpan: string
 }
 
-export function NoiseMonitoringChart({ coachId, timeSpan }: NoiseMonitoringChartProps) {
+export function NoiseMonitoringChart({ carriageId, timeSpan }: NoiseMonitoringChartProps) {
   const [data, setData] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [coachConfig, setCoachConfig] = useState<Record<string, { label: string; color: string }>>({})
+  const [carriageConfig, setCarriageConfig] = useState<Record<string, { label: string; color: string }>>({})
 
-  // Generate colors for coaches
-  const generateCoachColor = (index: number) => {
+  // Generate colors for carriages
+  const generateCarriageColor = (index: number) => {
     const colors = [
       "#22c55e", // green
       "#ef4444", // red
@@ -39,7 +39,7 @@ export function NoiseMonitoringChart({ coachId, timeSpan }: NoiseMonitoringChart
       try {
         setLoading(true)
         // Fetch noise data with filtering
-        const noiseData = await apiClient.getNoiseMonitoring(coachId, timeSpan) as NoiseData[]
+        const noiseData = await apiClient.getNoiseMonitoring(carriageId, timeSpan) as NoiseData[]
         
         // Format the data for the chart with actual timestamps
         const formattedData = noiseData.map(item => {
@@ -56,34 +56,34 @@ export function NoiseMonitoringChart({ coachId, timeSpan }: NoiseMonitoringChart
           }
         }).sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime()) // Sort chronologically
         
-        // Dynamically detect coaches from the data
+        // Dynamically detect carriages from the data
         if (formattedData.length > 0) {
-          // Scan ALL data points to find all possible coaches (not just the first one)
-          const allCoachKeys = new Set<string>()
+          // Scan ALL data points to find all possible carriages (not just the first one)
+          const allCarriageKeys = new Set<string>()
           formattedData.forEach(dataPoint => {
             Object.keys(dataPoint).forEach(key => {
-              if (key.startsWith('coach')) {
-                allCoachKeys.add(key)
+              if (key.startsWith('carriage')) {
+                allCarriageKeys.add(key)
               }
             })
           })
           
-          const coachKeysArray = Array.from(allCoachKeys).sort((a, b) => {
-            const aNum = parseInt(a.replace('coach', ''))
-            const bNum = parseInt(b.replace('coach', ''))
+          const carriageKeysArray = Array.from(allCarriageKeys).sort((a, b) => {
+            const aNum = parseInt(a.replace('carriage', ''))
+            const bNum = parseInt(b.replace('carriage', ''))
             return aNum - bNum
           })
           
           const dynamicConfig: Record<string, { label: string; color: string }> = {}
-          coachKeysArray.forEach((coachKey, index) => {
-            const coachNumber = coachKey.replace('coach', '')
-            dynamicConfig[coachKey] = {
-              label: `Coach ${coachNumber}`,
-              color: generateCoachColor(index)
+          carriageKeysArray.forEach((carriageKey, index) => {
+            const carriageNumber = carriageKey.replace('carriage', '')
+            dynamicConfig[carriageKey] = {
+              label: `Carriage ${carriageNumber}`,
+              color: generateCarriageColor(index)
             }
           })
           
-          setCoachConfig(dynamicConfig)
+          setCarriageConfig(dynamicConfig)
         }
         
         setData(formattedData)
@@ -100,14 +100,14 @@ export function NoiseMonitoringChart({ coachId, timeSpan }: NoiseMonitoringChart
     // Refresh every 30 seconds
     const interval = setInterval(fetchData, 30000)
     return () => clearInterval(interval)
-  }, [coachId, timeSpan])
+  }, [carriageId, timeSpan])
 
   if (loading) {
     return (
       <Card className="bg-card border-border">
         <CardHeader>
           <CardTitle className="text-foreground">Noise Monitoring</CardTitle>
-          <CardDescription className="text-muted-foreground">Decibel levels by coach with timestamps</CardDescription>
+          <CardDescription className="text-muted-foreground">Decibel levels by carriage with timestamps</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="h-[300px] bg-muted rounded animate-pulse"></div>
@@ -121,7 +121,7 @@ export function NoiseMonitoringChart({ coachId, timeSpan }: NoiseMonitoringChart
       <Card className="bg-card border-border">
         <CardHeader>
           <CardTitle className="text-foreground">Noise Monitoring</CardTitle>
-          <CardDescription className="text-muted-foreground">Decibel levels by coach with timestamps</CardDescription>
+          <CardDescription className="text-muted-foreground">Decibel levels by carriage with timestamps</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="h-[300px] flex items-center justify-center">
@@ -136,11 +136,11 @@ export function NoiseMonitoringChart({ coachId, timeSpan }: NoiseMonitoringChart
     <Card className="bg-card border-border">
       <CardHeader>
         <CardTitle className="text-foreground">Noise Monitoring</CardTitle>
-        <CardDescription className="text-muted-foreground">Decibel levels by coach with timestamps</CardDescription>
+        <CardDescription className="text-muted-foreground">Decibel levels by carriage with timestamps</CardDescription>
       </CardHeader>
       <CardContent>
         <ChartContainer
-          config={coachConfig}
+          config={carriageConfig}
           className="h-[300px]"
         >
           <ResponsiveContainer width="100%" height="100%">
@@ -194,12 +194,12 @@ export function NoiseMonitoringChart({ coachId, timeSpan }: NoiseMonitoringChart
                   return null
                 }}
               />
-              {/* Dynamically render lines for all coaches */}
-              {Object.entries(coachConfig).map(([coachKey, config]) => (
+              {/* Dynamically render lines for all carriages */}
+              {Object.entries(carriageConfig).map(([carriageKey, config]) => (
                 <Line
-                  key={coachKey}
+                  key={carriageKey}
                   type="monotone"
-                  dataKey={coachKey}
+                  dataKey={carriageKey}
                   stroke={config.color}
                   strokeWidth={2}
                   dot={{ fill: config.color, r: 3 }}

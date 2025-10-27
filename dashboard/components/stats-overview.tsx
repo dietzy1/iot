@@ -6,11 +6,11 @@ import { apiClient, type StatsOverview as StatsData } from "@/lib/api"
 import { useEffect, useState } from "react"
 
 interface StatsOverviewProps {
-  coachId: number | null
+  carriageId: number | null
   timeSpan: string
 }
 
-export function StatsOverview({ coachId, timeSpan }: StatsOverviewProps) {
+export function StatsOverview({ carriageId, timeSpan }: StatsOverviewProps) {
   const [stats, setStats] = useState<StatsData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -19,7 +19,7 @@ export function StatsOverview({ coachId, timeSpan }: StatsOverviewProps) {
     const fetchStats = async () => {
       try {
         setLoading(true)
-        const data = await apiClient.getStatsOverview(coachId, timeSpan) as StatsData
+        const data = await apiClient.getStatsOverview(carriageId, timeSpan) as StatsData
         setStats(data)
         setError(null)
       } catch (err) {
@@ -34,7 +34,7 @@ export function StatsOverview({ coachId, timeSpan }: StatsOverviewProps) {
     // Refresh every 10 seconds
     const interval = setInterval(fetchStats, 10000)
     return () => clearInterval(interval)
-  }, [coachId, timeSpan])
+  }, [carriageId, timeSpan])
 
   if (loading) {
     return (

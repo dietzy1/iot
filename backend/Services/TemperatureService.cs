@@ -16,11 +16,11 @@ namespace backend.Services
             _logger = logger;
         }
 
-        public async Task SaveTemperatureData(int coachId, float temperature, float humidity, string sensorLocation)
+        public async Task SaveTemperatureData(int carriageId, float temperature, float humidity, string sensorLocation)
         {
             var newRecord = new CarriageTemperature
             {
-                CarriageId = coachId,
+                CarriageId = carriageId,
                 Date = DateTime.UtcNow,
                 Temperature = temperature,
                 Humidity = humidity,
@@ -30,11 +30,11 @@ namespace backend.Services
             _context.CarriageTemperatures.Add(newRecord);
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation("Temperature data saved: Coach {coachId}, Temp: {temperature}°C, Humidity: {humidity}%, Location: {sensorLocation}",
-                coachId, temperature, humidity, sensorLocation);
+            _logger.LogInformation("Temperature data saved: Carriage {carriageId}, Temp: {temperature}°C, Humidity: {humidity}%, Location: {sensorLocation}",
+                carriageId, temperature, humidity, sensorLocation);
         }
 
-        public async Task<List<Tuple<float, DateTime>>> GetAverageTemperaturePer5Min(int coachId, DateTime? from, DateTime? to)
+        public async Task<List<Tuple<float, DateTime>>> GetAverageTemperaturePer5Min(int carriageId, DateTime? from, DateTime? to)
         {
             if (to == null)
             {
@@ -52,7 +52,7 @@ namespace backend.Services
             do
             {
                 var Temperatures = await _context.CarriageTemperatures
-                    .Where(cn => cn.CarriageId == coachId && cn.Date >= intermediateDateTime && cn.Date <= to)
+                    .Where(cn => cn.CarriageId == carriageId && cn.Date >= intermediateDateTime && cn.Date <= to)
                     .ToListAsync();
 
                 if (Temperatures.Count > 0)
@@ -66,13 +66,13 @@ namespace backend.Services
             }
             while (intermediateDateTime >= from);
 
-            _logger.LogInformation("Average noise level for Coach {coachId} from {from} to {to} is queried",
-                coachId, from, to);
+            _logger.LogInformation("Average temperature for Carriage {carriageId} from {from} to {to} is queried",
+                carriageId, from, to);
 
             return results;
         }
 
-        public async Task<List<Tuple<float, DateTime>>> GetAverageHumidityPer5Min(int coachId, DateTime? from, DateTime? to)
+        public async Task<List<Tuple<float, DateTime>>> GetAverageHumidityPer5Min(int carriageId, DateTime? from, DateTime? to)
         {
             if (to == null)
             {
@@ -90,7 +90,7 @@ namespace backend.Services
             do
             {
                 var Humidities = await _context.CarriageTemperatures
-                    .Where(cn => cn.CarriageId == coachId && cn.Date >= intermediateDateTime && cn.Date <= to)
+                    .Where(cn => cn.CarriageId == carriageId && cn.Date >= intermediateDateTime && cn.Date <= to)
                     .ToListAsync();
 
                 if (Humidities.Count > 0)
@@ -104,8 +104,8 @@ namespace backend.Services
             }
             while (intermediateDateTime >= from);
 
-            _logger.LogInformation("Average humidity for Coach {coachId} from {from} to {to} is queried",
-                coachId, from, to);
+            _logger.LogInformation("Average humidity for Carriage {carriageId} from {from} to {to} is queried",
+                carriageId, from, to);
 
             return results;
         }

@@ -1,9 +1,9 @@
 ## Train Seat Availability Simulator (Go + MQTT)
 
-Simulates seat-availability events for train coaches and publishes them via MQTT. Desktop Go publisher provided; TinyGo/ESP32 publisher skeleton included.
+Simulates seat-availability events for train carriages and publishes them via MQTT. Desktop Go publisher provided; TinyGo/ESP32 publisher skeleton included.
 
 ### Topic and Payload
-- Topic: `train/{trainNumber}/coach/{coachNumber}`
+- Topic: `train/{trainNumber}/carriage/{carriageNumber}`
 - JSON payload example:
 ```json
 {
@@ -11,7 +11,7 @@ Simulates seat-availability events for train coaches and publishes them via MQTT
   "available": true,
   "timestamp": "2025-01-01T12:00:00Z",
   "train": "IC-123",
-  "coach": 2,
+  "carriage": 2,
   "battery_mv": 3725,
   "signal_dbm": -67
 }

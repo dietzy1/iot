@@ -18,9 +18,9 @@ namespace backend.Controllers
             _logger = logger;
         }
 
-        // GET: api/analytics/occupancy?coachId=1&timeSpan=1hour
+        // GET: api/analytics/occupancy?carriageId=1&timeSpan=1hour
         [HttpGet("occupancy")]
-        public async Task<IActionResult> GetOccupancy([FromQuery] int? coachId, [FromQuery] string timeSpan = "1hour")
+        public async Task<IActionResult> GetOccupancy([FromQuery] int? carriageId, [FromQuery] string timeSpan = "1hour")
         {
             var timeRange = GetTimeRange(timeSpan);
             var startTime = DateTime.UtcNow.AddMinutes(-timeRange);
@@ -34,10 +34,10 @@ namespace backend.Controllers
                 .Select(g => g.OrderByDescending(cs => cs.Date).First())
                 .ToList();
 
-            // Filter by coachId if specified
-            if (coachId.HasValue)
+            // Filter by carriageId if specified
+            if (carriageId.HasValue)
             {
-                latestSeats = latestSeats.Where(cs => cs.CarriageId == coachId.Value).ToList();
+                latestSeats = latestSeats.Where(cs => cs.CarriageId == carriageId.Value).ToList();
             }
 
             var totalSeats = latestSeats.Any() ? latestSeats.Sum(s => s.TotalSeats) : 0;
@@ -53,9 +53,9 @@ namespace backend.Controllers
             });
         }
 
-        // GET: api/analytics/temperature?coachId=1&timeSpan=1hour
+        // GET: api/analytics/temperature?carriageId=1&timeSpan=1hour
         [HttpGet("temperature")]
-        public async Task<IActionResult> GetTemperature([FromQuery] int? coachId, [FromQuery] string timeSpan = "1hour")
+        public async Task<IActionResult> GetTemperature([FromQuery] int? carriageId, [FromQuery] string timeSpan = "1hour")
         {
             var timeRange = GetTimeRange(timeSpan);
             var startTime = DateTime.UtcNow.AddMinutes(-timeRange);
@@ -69,10 +69,10 @@ namespace backend.Controllers
                 .Select(g => g.OrderByDescending(ct => ct.Date).First())
                 .ToList();
 
-            // Filter by coachId if specified
-            if (coachId.HasValue)
+            // Filter by carriageId if specified
+            if (carriageId.HasValue)
             {
-                latestTemps = latestTemps.Where(ct => ct.CarriageId == coachId.Value).ToList();
+                latestTemps = latestTemps.Where(ct => ct.CarriageId == carriageId.Value).ToList();
             }
 
             var avgTemperature = latestTemps.Any() ? latestTemps.Average(t => t.Temperature) : 0;
@@ -86,9 +86,9 @@ namespace backend.Controllers
             });
         }
 
-        // GET: api/analytics/noise?coachId=1&timeSpan=1hour
+        // GET: api/analytics/noise?carriageId=1&timeSpan=1hour
         [HttpGet("noise")]
-        public async Task<IActionResult> GetNoise([FromQuery] int? coachId, [FromQuery] string timeSpan = "1hour")
+        public async Task<IActionResult> GetNoise([FromQuery] int? carriageId, [FromQuery] string timeSpan = "1hour")
         {
             var timeRange = GetTimeRange(timeSpan);
             var startTime = DateTime.UtcNow.AddMinutes(-timeRange);
@@ -102,10 +102,10 @@ namespace backend.Controllers
                 .Select(g => g.OrderByDescending(cn => cn.Date).First())
                 .ToList();
 
-            // Filter by coachId if specified
-            if (coachId.HasValue)
+            // Filter by carriageId if specified
+            if (carriageId.HasValue)
             {
-                latestNoise = latestNoise.Where(cn => cn.CarriageId == coachId.Value).ToList();
+                latestNoise = latestNoise.Where(cn => cn.CarriageId == carriageId.Value).ToList();
             }
 
             var avgNoiseLevel = latestNoise.Any() ? latestNoise.Average(n => n.NoiseLevel) : 0;
@@ -147,9 +147,9 @@ namespace backend.Controllers
             });
         }
 
-        // GET: api/analytics/temperature/history?coachId=1&timeSpan=1hour
+        // GET: api/analytics/temperature/history?carriageId=1&timeSpan=1hour
         [HttpGet("temperature/history")]
-        public async Task<IActionResult> GetTemperatureHistory([FromQuery] int? coachId, [FromQuery] string timeSpan = "1hour")
+        public async Task<IActionResult> GetTemperatureHistory([FromQuery] int? carriageId, [FromQuery] string timeSpan = "1hour")
         {
             var timeRange = GetTimeRange(timeSpan);
             var startTime = DateTime.UtcNow.AddMinutes(-timeRange);
@@ -157,9 +157,9 @@ namespace backend.Controllers
             var query = _context.CarriageTemperatures
                 .Where(ct => ct.Date >= startTime);
 
-            if (coachId.HasValue)
+            if (carriageId.HasValue)
             {
-                query = query.Where(ct => ct.CarriageId == coachId.Value);
+                query = query.Where(ct => ct.CarriageId == carriageId.Value);
             }
 
             var tempData = await query
@@ -184,7 +184,7 @@ namespace backend.Controllers
                 .OrderBy(x => x.timestamp)
                 .ToList();
 
-            // Pivot data by coach
+            // Pivot data by carriage
             var pivotedData = groupedData
                 .GroupBy(x => x.timestamp)
                 .Select(g => new Dictionary<string, object>
@@ -192,7 +192,7 @@ namespace backend.Controllers
                     ["timestamp"] = g.Key,
                     ["time"] = g.Key.ToString("HH:mm")
                 }.Concat(g.Select(item => new KeyValuePair<string, object>(
-                    $"coach{item.carriageId}",
+                    $"carriage{item.carriageId}",
                     item.temperature
                 ))).ToDictionary(kvp => kvp.Key, kvp => kvp.Value))
                 .ToList();
@@ -200,9 +200,9 @@ namespace backend.Controllers
             return Ok(pivotedData);
         }
 
-        // GET: api/analytics/noise/history?coachId=1&timeSpan=1hour
+        // GET: api/analytics/noise/history?carriageId=1&timeSpan=1hour
         [HttpGet("noise/history")]
-        public async Task<IActionResult> GetNoiseHistory([FromQuery] int? coachId, [FromQuery] string timeSpan = "1hour")
+        public async Task<IActionResult> GetNoiseHistory([FromQuery] int? carriageId, [FromQuery] string timeSpan = "1hour")
         {
             var timeRange = GetTimeRange(timeSpan);
             var startTime = DateTime.UtcNow.AddMinutes(-timeRange);
@@ -210,9 +210,9 @@ namespace backend.Controllers
             var query = _context.CarriageNoises
                 .Where(cn => cn.Date >= startTime);
 
-            if (coachId.HasValue)
+            if (carriageId.HasValue)
             {
-                query = query.Where(cn => cn.CarriageId == coachId.Value);
+                query = query.Where(cn => cn.CarriageId == carriageId.Value);
             }
 
             var noiseData = await query
@@ -236,7 +236,7 @@ namespace backend.Controllers
                 .OrderBy(x => x.timestamp)
                 .ToList();
 
-            // Pivot data by coach
+            // Pivot data by carriage
             var pivotedData = groupedData
                 .GroupBy(x => x.timestamp)
                 .Select(g => new Dictionary<string, object>
@@ -244,7 +244,7 @@ namespace backend.Controllers
                     ["timestamp"] = g.Key,
                     ["time"] = g.Key.ToString("HH:mm")
                 }.Concat(g.Select(item => new KeyValuePair<string, object>(
-                    $"coach{item.carriageId}",
+                    $"carriage{item.carriageId}",
                     item.noiseLevel
                 ))).ToDictionary(kvp => kvp.Key, kvp => kvp.Value))
                 .ToList();
@@ -252,15 +252,15 @@ namespace backend.Controllers
             return Ok(pivotedData);
         }
 
-        // GET: api/analytics/seats/availability?coachId=1
+        // GET: api/analytics/seats/availability?carriageId=1
         [HttpGet("seats/availability")]
-        public async Task<IActionResult> GetSeatAvailability([FromQuery] int? coachId)
+        public async Task<IActionResult> GetSeatAvailability([FromQuery] int? carriageId)
         {
             var query = _context.CarriageSeats.AsQueryable();
 
-            if (coachId.HasValue)
+            if (carriageId.HasValue)
             {
-                query = query.Where(cs => cs.CarriageId == coachId.Value);
+                query = query.Where(cs => cs.CarriageId == carriageId.Value);
             }
 
             // Get all seat data and process in memory to avoid EF Core translation issues
@@ -274,7 +274,7 @@ namespace backend.Controllers
 
             var result = latestSeats.Select(seat => new
             {
-                coach = $"Coach {seat.CarriageId}",
+                carriage = $"Carriage {seat.CarriageId}",
                 occupied = seat.OcupiedSeats,
                 available = seat.TotalSeats - seat.OcupiedSeats
             }).ToList();
@@ -282,17 +282,17 @@ namespace backend.Controllers
             return Ok(result);
         }
 
-        // GET: api/analytics/events/recent?coachId=1&limit=50
+        // GET: api/analytics/events/recent?carriageId=1&limit=50
         [HttpGet("events/recent")]
-        public async Task<IActionResult> GetRecentEvents([FromQuery] int? coachId, [FromQuery] int limit = 50)
+        public async Task<IActionResult> GetRecentEvents([FromQuery] int? carriageId, [FromQuery] int limit = 50)
         {
             var events = new List<object>();
 
             // Get recent temperature events
             var tempQuery = _context.CarriageTemperatures.AsQueryable();
-            if (coachId.HasValue)
+            if (carriageId.HasValue)
             {
-                tempQuery = tempQuery.Where(ct => ct.CarriageId == coachId.Value);
+                tempQuery = tempQuery.Where(ct => ct.CarriageId == carriageId.Value);
             }
 
             var recentTemps = await tempQuery
@@ -302,7 +302,7 @@ namespace backend.Controllers
                 {
                     type = "temperature",
                     timestamp = ct.Date,
-                    title = $"Temperature Update - Coach {ct.CarriageId}",
+                    title = $"Temperature Update - Carriage {ct.CarriageId}",
                     description = $"{ct.Temperature:F1}°C, {ct.Humidity:F1}% humidity at {ct.SensorLocation}",
                     severity = ct.Temperature > 26 ? "high" : ct.Temperature < 20 ? "low" : "medium"
                 })
@@ -312,9 +312,9 @@ namespace backend.Controllers
 
             // Get recent noise events
             var noiseQuery = _context.CarriageNoises.AsQueryable();
-            if (coachId.HasValue)
+            if (carriageId.HasValue)
             {
-                noiseQuery = noiseQuery.Where(cn => cn.CarriageId == coachId.Value);
+                noiseQuery = noiseQuery.Where(cn => cn.CarriageId == carriageId.Value);
             }
 
             var recentNoise = await noiseQuery
@@ -324,7 +324,7 @@ namespace backend.Controllers
                 {
                     type = "noise",
                     timestamp = cn.Date,
-                    title = $"Noise Update - Coach {cn.CarriageId}",
+                    title = $"Noise Update - Carriage {cn.CarriageId}",
                     description = $"{cn.NoiseLevel:F1}dB at {cn.Location}",
                     severity = cn.NoiseLevel > 70 ? "high" : cn.NoiseLevel < 50 ? "low" : "medium"
                 })
@@ -334,9 +334,9 @@ namespace backend.Controllers
 
             // Get recent seat events
             var seatQuery = _context.CarriageSeats.AsQueryable();
-            if (coachId.HasValue)
+            if (carriageId.HasValue)
             {
-                seatQuery = seatQuery.Where(cs => cs.CarriageId == coachId.Value);
+                seatQuery = seatQuery.Where(cs => cs.CarriageId == carriageId.Value);
             }
 
             var recentSeats = await seatQuery
@@ -346,7 +346,7 @@ namespace backend.Controllers
                 {
                     type = "seat",
                     timestamp = cs.Date,
-                    title = $"Seat Update - Coach {cs.CarriageId}",
+                    title = $"Seat Update - Carriage {cs.CarriageId}",
                     description = $"Occupancy: {cs.OcupiedSeats}/{cs.TotalSeats} seats ({(cs.OcupiedSeats * 100.0 / cs.TotalSeats):F1}%)",
                     severity = (cs.OcupiedSeats * 100.0 / cs.TotalSeats) > 80 ? "high" : 
                                (cs.OcupiedSeats * 100.0 / cs.TotalSeats) > 50 ? "medium" : "low"

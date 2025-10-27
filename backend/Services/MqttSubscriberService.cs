@@ -42,10 +42,10 @@ namespace backend.Services
 
                 // Subscribe to all IoT topics from Go publisher
                 await _mqttClient.SubscribeAsync(new MqttTopicFilterBuilder()
-                    .WithTopic("train/+/coach/+/+")
+                    .WithTopic("train/+/carriage/+/+")
                     .Build(), stoppingToken);
 
-                _logger.LogInformation("✅ Subscribed to IoT topics: train/+/coach/+/+");
+                _logger.LogInformation("✅ Subscribed to IoT topics: train/+/carriage/+/+");
             }
             catch (Exception ex)
             {
@@ -64,27 +64,27 @@ namespace backend.Services
 
                 using var scope = _serviceProvider.CreateScope();
 
-                // Parse topic: train/IC-123/coach/1/temperature
+                // Parse topic: train/IC-123/carriage/1/temperature
                 var topicParts = topic.Split('/');
                 if (topicParts.Length >= 5)
                 {
                     var trainId = topicParts[1];  // IC-123
-                    var coachIdStr = topicParts[3]; // 1
+                    var carriageIdStr = topicParts[3]; // 1
                     var sensorType = topicParts[4]; // temperature, seat, noise
 
-                    if (int.TryParse(coachIdStr, out int coachId))
+                    if (int.TryParse(carriageIdStr, out int carriageId))
                     {
                         if (sensorType == "temperature")
                         {
-                            await HandleTemperatureData(payload, coachId, scope.ServiceProvider.GetRequiredService<TemperatureService>());
+                            await HandleTemperatureData(payload, carriageId, scope.ServiceProvider.GetRequiredService<TemperatureService>());
                         }
                         else if (sensorType == "noise")
                         {
-                            await HandleNoiseData(payload, coachId, scope.ServiceProvider.GetRequiredService<NoiseService>());
+                            await HandleNoiseData(payload, carriageId, scope.ServiceProvider.GetRequiredService<NoiseService>());
                         }
                         else if (sensorType == "seat")
                         {
-                            await HandleSeatData(payload, coachId, scope.ServiceProvider.GetRequiredService<SeatService>());
+                            await HandleSeatData(payload, carriageId, scope.ServiceProvider.GetRequiredService<SeatService>());
                         }
                     }
                 }
@@ -95,7 +95,7 @@ namespace backend.Services
             }
         }
 
-        private async Task HandleTemperatureData(string payload, int coachId, TemperatureService temperatureService)
+        private async Task HandleTemperatureData(string payload, int carriageId, TemperatureService temperatureService)
         {
             try
             {
@@ -120,7 +120,7 @@ namespace backend.Services
                     }
 
                     // Delegate to TemperatureService
-                    await temperatureService.SaveTemperatureData(coachId, temperature, humidity, sensorLocation);
+                    await temperatureService.SaveTemperatureData(carriageId, temperature, humidity, sensorLocation);
                 }
             }
             catch (Exception ex)
@@ -129,7 +129,7 @@ namespace backend.Services
             }
         }
 
-        private async Task HandleNoiseData(string payload, int coachId, NoiseService noiseService)
+        private async Task HandleNoiseData(string payload, int carriageId, NoiseService noiseService)
         {
             try
             {
@@ -142,7 +142,7 @@ namespace backend.Services
                                   locationElement.GetString() ?? "unknown" : "unknown";
 
                     // Delegate to NoiseService
-                    await noiseService.SaveNoiseData(coachId, noiseLevel, location);
+                    await noiseService.SaveNoiseData(carriageId, noiseLevel, location);
                 }
             }
             catch (Exception ex)
@@ -151,7 +151,7 @@ namespace backend.Services
             }
         }
 
-        private async Task HandleSeatData(string payload, int coachId, SeatService seatService)
+        private async Task HandleSeatData(string payload, int carriageId, SeatService seatService)
         {
             try
             {
@@ -171,7 +171,7 @@ namespace backend.Services
                 }
 
                 // Delegate to SeatService
-                await seatService.UpdateSeatData(coachId, seatNumber, isOccupied);
+                await seatService.UpdateSeatData(carriageId, seatNumber, isOccupied);
             }
             catch (Exception ex)
             {

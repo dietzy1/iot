@@ -7,10 +7,10 @@ import { apiClient, type SeatAvailability } from "@/lib/api"
 import { useEffect, useState } from "react"
 
 interface SeatAvailabilityChartProps {
-  coachId: number | null
+  carriageId: number | null
 }
 
-export function SeatAvailabilityChart({ coachId }: SeatAvailabilityChartProps) {
+export function SeatAvailabilityChart({ carriageId }: SeatAvailabilityChartProps) {
   const [data, setData] = useState<SeatAvailability[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -19,7 +19,7 @@ export function SeatAvailabilityChart({ coachId }: SeatAvailabilityChartProps) {
     const fetchData = async () => {
       try {
         setLoading(true)
-        const seatData = await apiClient.getSeatAvailability(coachId) as SeatAvailability[]
+        const seatData = await apiClient.getSeatAvailability(carriageId) as SeatAvailability[]
         setData(seatData)
         setError(null)
       } catch (err) {
@@ -34,7 +34,7 @@ export function SeatAvailabilityChart({ coachId }: SeatAvailabilityChartProps) {
     // Refresh every 30 seconds
     const interval = setInterval(fetchData, 30000)
     return () => clearInterval(interval)
-  }, [coachId])
+  }, [carriageId])
 
   if (loading) {
     return (
@@ -90,7 +90,7 @@ export function SeatAvailabilityChart({ coachId }: SeatAvailabilityChartProps) {
             <BarChart data={data} margin={{ left: 0, right: 0, top: 5, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
               <XAxis
-                dataKey="coach"
+                dataKey="carriage"
                 stroke="hsl(var(--muted-foreground))"
                 fontSize={11}
                 tickLine={false}

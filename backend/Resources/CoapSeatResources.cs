@@ -33,34 +33,34 @@ namespace backend.Resources
     }
 
     /// <summary>
-    /// Coach resource that contains an 'available' child resource
+    /// Carriage resource that contains an 'available' child resource
     /// </summary>
-    public class CoapCoachResource : Resource
+    public class CoapCarriageResource : Resource
     {
-        public int CoachId { get; }
+        public int CarriageId { get; }
         public CoapAvailableResource AvailableResource { get; }
 
-        public CoapCoachResource(int coachId) : base(coachId.ToString())
+        public CoapCarriageResource(int carriageId) : base(carriageId.ToString())
         {
-            CoachId = coachId;
+            CarriageId = carriageId;
             AvailableResource = new CoapAvailableResource();
             Add(AvailableResource);
         }
     }
 
     /// <summary>
-    /// Manages CoAP coach resources and dispatches seat availability notifications
+    /// Manages CoAP carriage resources and dispatches seat availability notifications
     /// </summary>
     public static class CoapResourceManager
     {
-        private static readonly ConcurrentDictionary<int, CoapCoachResource> _coachResources = new();
+        private static readonly ConcurrentDictionary<int, CoapCarriageResource> _carriageResources = new();
 
         /// <summary>
-        /// Registers a coach resource with the CoAP server
+        /// Registers a carriage resource with the CoAP server
         /// </summary>
-        public static void RegisterCoachResource(CoapCoachResource resource, Resource parent)
+        public static void RegisterCarriageResource(CoapCarriageResource resource, Resource parent)
         {
-            if (_coachResources.TryAdd(resource.CoachId, resource))
+            if (_carriageResources.TryAdd(resource.CarriageId, resource))
             {
                 parent.Add(resource);
             }
@@ -69,11 +69,11 @@ namespace backend.Resources
         /// <summary>
         /// Called by SeatService after DB update to notify CoAP observers
         /// </summary>
-        public static void NotifySeatUpdate(int coachId, int availableSeats)
+        public static void NotifySeatUpdate(int carriageId, int availableSeats)
         {
-            if (_coachResources.TryGetValue(coachId, out var coachRes))
+            if (_carriageResources.TryGetValue(carriageId, out var carriageRes))
             {
-                coachRes.AvailableResource.Update(availableSeats);
+                carriageRes.AvailableResource.Update(availableSeats);
             }
         }
     }

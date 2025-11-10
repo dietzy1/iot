@@ -6,6 +6,66 @@ import (
 	"time"
 )
 
+// DayCycle represents a simple 4-phase cycle (2 minutes total)
+type DayCycle struct {
+	startTime time.Time
+}
+
+// NewDayCycle creates a new day cycle
+func NewDayCycle() *DayCycle {
+	return &DayCycle{
+		startTime: time.Now(),
+	}
+}
+
+// GetPhase returns which phase we're in (0-3)
+// Each phase lasts 1 minute
+func (dc *DayCycle) GetPhase() int {
+	elapsed := time.Since(dc.startTime)
+	seconds := int(elapsed.Seconds()) % 240 // 4 minute loop
+	return seconds / 60                      // 4 phases of 60s each
+}
+
+// GetPhaseName returns the current phase name
+func (dc *DayCycle) GetPhaseName() string {
+	phases := []string{"Morning Rush", "Slow Period", "Afternoon Rush", "Slow Period"}
+	return phases[dc.GetPhase()]
+}
+
+// GetOccupancyMultiplier returns target occupancy (0.0 - 1.0)
+func (dc *DayCycle) GetOccupancyMultiplier() float64 {
+	phase := dc.GetPhase()
+	switch phase {
+	case 0: // Morning rush
+		return 0.85
+	case 1: // Slow period
+		return 0.25
+	case 2: // Afternoon rush
+		return 0.99
+	case 3: // Slow period
+		return 0.20
+	default:
+		return 0.50
+	}
+}
+
+// GetBaseTemperature returns base temperature
+func (dc *DayCycle) GetBaseTemperature() float32 {
+	phase := dc.GetPhase()
+	switch phase {
+	case 0: // Morning rush - cooler
+		return 18.0
+	case 1: // Slow period - warming up
+		return 20.0
+	case 2: // Afternoon rush - warmer
+		return 25.0
+	case 3: // Slow period - cooling down
+		return 19.0
+	default:
+		return 20.0
+	}
+}
+
 // Base event with common fields that all events share
 type BaseEvent struct {
 	EventType string    `json:"event_type"`
@@ -46,8 +106,10 @@ type Config struct {
 }
 
 type Generator struct {
-	cfg Config
-	rnd *rand.Rand
+	cfg      Config
+	rnd      *rand.Rand
+	seats    [][]bool  // [carriage][seat] - track seat states
+	dayCycle *DayCycle
 }
 
 func NewGenerator(cfg Config) *Generator {
@@ -55,7 +117,19 @@ func NewGenerator(cfg Config) *Generator {
 	if seed == 0 {
 		seed = time.Now().UnixNano()
 	}
-	return &Generator{cfg: cfg, rnd: rand.New(rand.NewSource(seed))}
+
+	// Initialize seat tracking
+	seats := make([][]bool, cfg.Carriages)
+	for i := range seats {
+		seats[i] = make([]bool, cfg.SeatsPerCarriage)
+	}
+
+	return &Generator{
+		cfg:      cfg,
+		rnd:      rand.New(rand.NewSource(seed)),
+		seats:    seats,
+		dayCycle: NewDayCycle(),
+	}
 }
 
 func (g *Generator) Topic(carriage int) string {
@@ -92,21 +166,38 @@ func (g *Generator) NextDelay() time.Duration {
 	return d + j
 }
 
+// getCurrentOccupancy calculates current occupancy rate for a carriage
+func (g *Generator) getCurrentOccupancy(carriage int) float64 {
+	occupied := 0
+	for _, taken := range g.seats[carriage-1] {
+		if taken {
+			occupied++
+		}
+	}
+	return float64(occupied) / float64(g.cfg.SeatsPerCarriage)
+}
+
 // Generate a random seat event
 func (g *Generator) RandomSeatEvent(carriage int) (SeatEvent, []byte) {
-	seat := 1 + g.rnd.Intn(g.cfg.SeatsPerCarriage)
+	seat := g.rnd.Intn(g.cfg.SeatsPerCarriage)
 
-	// Use time-based waves to create more visible patterns
-	// Every minute cycles through: filling -> emptying -> filling -> emptying
-	minute := time.Now().Unix() / 30 // 30-second cycles
-	isFilling := minute%2 == 0
+	targetOccupancy := g.dayCycle.GetOccupancyMultiplier()
+	currentOccupancy := g.getCurrentOccupancy(carriage)
 
-	var available bool
-	if isFilling {
-		available = g.rnd.Intn(100) < 30 // 30% chance available = seats getting occupied
-	} else {
-		available = g.rnd.Intn(100) < 70 // 70% chance available = seats getting freed
+	// Gradually adjust toward target
+	if currentOccupancy < targetOccupancy {
+		// Fill seats - 70% chance per event (increased from 40%)
+		if !g.seats[carriage-1][seat] && g.rnd.Float64() < 0.7 {
+			g.seats[carriage-1][seat] = true
+		}
+	} else if currentOccupancy > targetOccupancy {
+		// Empty seats - 60% chance per event (increased from 30%)
+		if g.seats[carriage-1][seat] && g.rnd.Float64() < 0.6 {
+			g.seats[carriage-1][seat] = false
+		}
 	}
+
+	available := !g.seats[carriage-1][seat]
 
 	e := SeatEvent{
 		BaseEvent: BaseEvent{
@@ -115,7 +206,7 @@ func (g *Generator) RandomSeatEvent(carriage int) (SeatEvent, []byte) {
 			Train:     g.cfg.Train,
 			Carriage:  carriage,
 		},
-		Seat:      seat,
+		Seat:      seat + 1, // 1-indexed for display
 		Available: available,
 	}
 	b, _ := json.Marshal(e)
@@ -124,7 +215,13 @@ func (g *Generator) RandomSeatEvent(carriage int) (SeatEvent, []byte) {
 
 // Generate a random noise event
 func (g *Generator) RandomNoiseEvent(carriage int) (NoiseEvent, []byte) {
-	decibelLevel := 30.0 + g.rnd.Float64()*50.0 // 30-80 dB
+	occupancy := g.getCurrentOccupancy(carriage)
+
+	// Base noise: 40-50 dB when empty
+	// Add up to +25 dB when full
+	baseNoise := 40.0 + g.rnd.Float64()*10.0
+	occupancyNoise := occupancy * 25.0
+
 	locations := []string{"front", "middle", "back"}
 	location := locations[g.rnd.Intn(len(locations))]
 
@@ -135,7 +232,7 @@ func (g *Generator) RandomNoiseEvent(carriage int) (NoiseEvent, []byte) {
 			Train:     g.cfg.Train,
 			Carriage:  carriage,
 		},
-		DecibelLevel: decibelLevel,
+		DecibelLevel: baseNoise + occupancyNoise,
 		Location:     location,
 	}
 	b, _ := json.Marshal(e)
@@ -144,8 +241,16 @@ func (g *Generator) RandomNoiseEvent(carriage int) (NoiseEvent, []byte) {
 
 // Generate a random temperature event
 func (g *Generator) RandomTemperatureEvent(carriage int) (TemperatureEvent, []byte) {
-	temperature := 18.0 + g.rnd.Float64()*15.0 // 18-33°C
-	humidity := 30.0 + g.rnd.Float64()*40.0    // 30-70%
+	occupancy := g.getCurrentOccupancy(carriage)
+
+	baseTemp := g.dayCycle.GetBaseTemperature()
+	occupancyHeat := float32(occupancy * 4.0) // Up to +4°C when full
+	temperature := float64(baseTemp + occupancyHeat)
+
+	// Small random variation
+	temperature += (g.rnd.Float64()*2 - 1) // ±1°C
+
+	humidity := 35.0 + g.rnd.Float64()*30.0 // 35-65%
 	locations := []string{"ceiling", "floor", "window", "door"}
 	location := locations[g.rnd.Intn(len(locations))]
 
@@ -177,6 +282,21 @@ func (g *Generator) RandomEvent(carriage int) (interface{}, []byte) {
 	default:
 		return g.RandomSeatEvent(carriage)
 	}
+}
+
+// GetPhaseName returns current cycle phase name
+func (g *Generator) GetPhaseName() string {
+	return g.dayCycle.GetPhaseName()
+}
+
+// GetOccupancyMultiplier returns target occupancy
+func (g *Generator) GetOccupancyMultiplier() float64 {
+	return g.dayCycle.GetOccupancyMultiplier()
+}
+
+// GetActualOccupancy returns actual current occupancy for a carriage
+func (g *Generator) GetActualOccupancy(carriage int) float64 {
+	return g.getCurrentOccupancy(carriage)
 }
 
 func itoa(v int) string {

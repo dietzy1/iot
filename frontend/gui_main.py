@@ -125,8 +125,17 @@ async def observe_carriage(gui, carriage_id):
             
             gui.update_status(f"🔄 Connecting to CoAP server (attempt {attempt}/{max_retries})...")
             
+            print(f"\n{'='*60}")
+            print(f"📡 CoAP GET → {uri}")
+            print(f"{'='*60}")
+            
             requester = context.request(request)
             first_response = await requester.response
+            
+            print(f"✅ CoAP Response:")
+            print(f"  Code: {first_response.code}")
+            print(f"  Payload: {first_response.payload.decode('utf-8')}")
+            print(f"{'='*60}\n")
             
             initial_seats = int(first_response.payload.decode('utf-8'))
             gui.update_seats(initial_seats)
@@ -136,16 +145,22 @@ async def observe_carriage(gui, carriage_id):
             
             # Listen for updates
             async for notification in requester.observation:
+                print(f"\n{'='*60}")
+                print(f"🔔 CoAP OBSERVE Update:")
+                print(f"  URI: {uri}")
+                print(f"  Code: {notification.code}")
+                print(f"  Payload: {notification.payload.decode('utf-8')}")
+                print(f"{'='*60}\n")
+                
                 available_seats = int(notification.payload.decode('utf-8'))
                 # GUI will handle deduplication in update_seats()
                 gui.update_seats(available_seats)
-                # Only print if value actually changed (already filtered by update_seats)
-                if available_seats != gui.current_seats:
-                    print(f"🔔 UPDATE >> Available seats: {available_seats}")
             
         except Exception as e:
             error_msg = str(e)
             await context.shutdown()
+            
+            print(f"\n❌ CoAP Error: {error_msg}\n")
             
             if "Connect call failed" in error_msg or "NetworkError" in error_msg:
                 if attempt < max_retries:

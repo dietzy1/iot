@@ -70,6 +70,46 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
+	// Log cycle status only when phase changes
+	go func() {
+		ticker := time.NewTicker(5 * time.Second)
+		defer ticker.Stop()
+		lastPhase := g.GetPhaseName()
+		
+		// Print initial phase
+		fmt.Printf("\n📊 Phase Changed: %s | Target Occupancy: %.0f%%\n", lastPhase, g.GetOccupancyMultiplier()*100)
+		
+		for {
+			select {
+			case <-ticker.C:
+				currentPhase := g.GetPhaseName()
+				if currentPhase != lastPhase {
+					fmt.Printf("\n📊 Phase Changed: %s | Target Occupancy: %.0f%%\n", currentPhase, g.GetOccupancyMultiplier()*100)
+					lastPhase = currentPhase
+				}
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+	
+	// Log actual occupancy every 15 seconds for debugging
+	go func() {
+		ticker := time.NewTicker(15 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				for i := 1; i <= *carriages; i++ {
+					actual := g.GetActualOccupancy(i)
+					fmt.Printf("   [Carriage %d] Actual Occupancy: %.0f%%\n", i, actual*100)
+				}
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
 	// Start one loop per carriage
 	done := make(chan struct{})
 	for carriage := 1; carriage <= *carriages; carriage++ {
@@ -87,23 +127,28 @@ func main() {
 				if ctx.Err() != nil {
 					break
 				}
-				event, payload := g.RandomEvent(carriageNum)
-
-				var topic string
-				switch event.(type) {
-				case sim.SeatEvent:
-					topic = g.SeatTopic(carriageNum)
-				case sim.NoiseEvent:
-					topic = g.NoiseTopic(carriageNum)
-				case sim.TemperatureEvent:
-					topic = g.TemperatureTopic(carriageNum)
-				default:
-					topic = g.Topic(carriageNum) // fallback to generic topic
-				}
-
-				if err := p.Publish(topic, payload); err != nil {
+				
+				// Generate ALL three event types to ensure frequent seat updates
+				seatEvent, seatPayload := g.RandomSeatEvent(carriageNum)
+				if err := p.Publish(g.SeatTopic(carriageNum), seatPayload); err != nil {
 					fmt.Fprintf(os.Stderr, "publish error: %v\n", err)
 				}
+				
+				noiseEvent, noisePayload := g.RandomNoiseEvent(carriageNum)
+				if err := p.Publish(g.NoiseTopic(carriageNum), noisePayload); err != nil {
+					fmt.Fprintf(os.Stderr, "publish error: %v\n", err)
+				}
+				
+				tempEvent, tempPayload := g.RandomTemperatureEvent(carriageNum)
+				if err := p.Publish(g.TemperatureTopic(carriageNum), tempPayload); err != nil {
+					fmt.Fprintf(os.Stderr, "publish error: %v\n", err)
+				}
+				
+				// Avoid unused variable warnings
+				_ = seatEvent
+				_ = noiseEvent
+				_ = tempEvent
+				
 				delay := g.NextDelay()
 				select {
 				case <-time.After(delay):

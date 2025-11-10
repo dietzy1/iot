@@ -37,12 +37,12 @@ type TemperatureEvent struct {
 }
 
 type Config struct {
-	Train         string
-	Coaches       int
+	Train            string
+	Carriages        int
 	SeatsPerCarriage int
-	BaseInterval  time.Duration
-	Jitter        time.Duration
-	Seed          int64
+	BaseInterval     time.Duration
+	Jitter           time.Duration
+	Seed             int64
 }
 
 type Generator struct {

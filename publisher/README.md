@@ -23,7 +23,7 @@ cd /Users/martinvad/uni/iot
 go mod tidy
 go run ./cmd/sim \
   --train IC-123 \
-  --coaches 3 \
+  --carriages 3 \
   --seats 64 \
   --interval 2s \
   --broker tcp://localhost:1883

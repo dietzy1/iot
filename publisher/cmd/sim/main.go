@@ -17,12 +17,12 @@ import (
 
 func main() {
 	var (
-		train    = flag.String("train", "IC-123", "train number/id")
-		coaches  = flag.Int("coaches", 2, "number of carriages")
-		seats    = flag.Int("seats", 32, "seats per carriage")
-		interval = flag.Duration("interval", 2*time.Second, "base interval between messages")
-		jitter   = flag.Duration("jitter", 500*time.Millisecond, "max additional or subtracted jitter")
-		seed     = flag.Int64("seed", 0, "random seed (0=random)")
+		train     = flag.String("train", "IC-123", "train number/id")
+		carriages = flag.Int("carriages", 2, "number of carriages")
+		seats     = flag.Int("seats", 32, "seats per carriage")
+		interval  = flag.Duration("interval", 2*time.Second, "base interval between messages")
+		jitter    = flag.Duration("jitter", 500*time.Millisecond, "max additional or subtracted jitter")
+		seed      = flag.Int64("seed", 0, "random seed (0=random)")
 
 		broker   = flag.String("broker", "", "mqtt broker url (e.g. tcp://host:1883). empty=stdout")
 		clientID = flag.String("client", "train-seat-sim", "mqtt client id")
@@ -36,12 +36,12 @@ func main() {
 	password := strings.TrimSpace(os.Getenv("MQTT_PASSWORD"))
 
 	g := sim.NewGenerator(sim.Config{
-		Train:         *train,
-		Coaches:       *coaches,
+		Train:            *train,
+		Carriages:        *carriages,
 		SeatsPerCarriage: *seats,
-		BaseInterval:  *interval,
-		Jitter:        *jitter,
-		Seed:          *seed,
+		BaseInterval:     *interval,
+		Jitter:           *jitter,
+		Seed:             *seed,
 	})
 
 	var p pub.Publisher
@@ -72,7 +72,7 @@ func main() {
 
 	// Start one loop per carriage
 	done := make(chan struct{})
-	for carriage := 1; carriage <= *coaches; carriage++ {
+	for carriage := 1; carriage <= *carriages; carriage++ {
 		carriageNum := carriage
 		go func() {
 			defer func() { done <- struct{}{} }()
@@ -118,7 +118,7 @@ func main() {
 	<-ctx.Done()
 	fmt.Println("Shutting down...")
 	// Wait for all goroutines to signal done
-	for i := 0; i < *coaches; i++ {
+	for i := 0; i < *carriages; i++ {
 		<-done
 	}
 }

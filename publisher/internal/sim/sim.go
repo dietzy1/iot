@@ -184,14 +184,11 @@ func (g *Generator) RandomSeatEvent(carriage int) (SeatEvent, []byte) {
 	targetOccupancy := g.dayCycle.GetOccupancyMultiplier()
 	currentOccupancy := g.getCurrentOccupancy(carriage)
 
-	// Gradually adjust toward target
 	if currentOccupancy < targetOccupancy {
-		// Fill seats - 70% chance per event (increased from 40%)
 		if !g.seats[carriage-1][seat] && g.rnd.Float64() < 0.7 {
 			g.seats[carriage-1][seat] = true
 		}
 	} else if currentOccupancy > targetOccupancy {
-		// Empty seats - 60% chance per event (increased from 30%)
 		if g.seats[carriage-1][seat] && g.rnd.Float64() < 0.6 {
 			g.seats[carriage-1][seat] = false
 		}

@@ -116,7 +116,6 @@ func main() {
 		carriageNum := carriage
 		go func() {
 			defer func() { done <- struct{}{} }()
-			// randomize initial offset so topics interleave
 			initial := time.Duration(rand.Int63n(int64(g.NextDelay())))
 			select {
 			case <-time.After(initial):

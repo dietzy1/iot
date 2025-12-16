@@ -70,14 +70,18 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	// Log cycle status only when phase changes
+	// Log cycle status and occupancy only when phase changes
 	go func() {
 		ticker := time.NewTicker(5 * time.Second)
 		defer ticker.Stop()
 		lastPhase := g.GetPhaseName()
 		
-		// Print initial phase
+		// Print initial phase and occupancy
 		fmt.Printf("\n📊 Phase Changed: %s | Target Occupancy: %.0f%%\n", lastPhase, g.GetOccupancyMultiplier()*100)
+		for i := 1; i <= *carriages; i++ {
+			actual := g.GetActualOccupancy(i)
+			fmt.Printf("   [Carriage %d] Actual Occupancy: %.0f%%\n", i, actual*100)
+		}
 		
 		for {
 			select {
@@ -85,24 +89,11 @@ func main() {
 				currentPhase := g.GetPhaseName()
 				if currentPhase != lastPhase {
 					fmt.Printf("\n📊 Phase Changed: %s | Target Occupancy: %.0f%%\n", currentPhase, g.GetOccupancyMultiplier()*100)
+					for i := 1; i <= *carriages; i++ {
+						actual := g.GetActualOccupancy(i)
+						fmt.Printf("   [Carriage %d] Actual Occupancy: %.0f%%\n", i, actual*100)
+					}
 					lastPhase = currentPhase
-				}
-			case <-ctx.Done():
-				return
-			}
-		}
-	}()
-	
-	// Log actual occupancy every 15 seconds for debugging
-	go func() {
-		ticker := time.NewTicker(15 * time.Second)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ticker.C:
-				for i := 1; i <= *carriages; i++ {
-					actual := g.GetActualOccupancy(i)
-					fmt.Printf("   [Carriage %d] Actual Occupancy: %.0f%%\n", i, actual*100)
 				}
 			case <-ctx.Done():
 				return
